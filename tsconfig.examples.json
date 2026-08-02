@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "paths": {
+      "ezagent": ["./src/index.ts"],
+      "ezagent/providers": ["./src/provider/index.ts"],
+      "ezagent/*": ["./src/*/index.ts"]
+    }
+  },
+  "include": ["examples/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}
