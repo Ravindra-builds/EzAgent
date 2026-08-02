@@ -1,0 +1,43 @@
+# API Reference
+
+A quick reference guide for main exports, classes, and error codes in EzAgent.
+
+## Core Classes
+
+| Class                   | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| `Agent`                 | Immutable agent configuration container.                             |
+| `Runner`                | Execution engine for agents with limits, tools, retries, and traces. |
+| `OpenAIProvider`        | Provider adapter for OpenAI models.                                  |
+| `GeminiProvider`        | Provider adapter for Google Gemini models.                           |
+| `InMemoryStorage`       | In-memory session transcript storage.                                |
+| `FileStorage`           | Disk-based atomic JSON session storage.                              |
+| `InMemoryMemory`        | Lexical factual long-term memory store.                              |
+| `InMemoryTraceExporter` | In-memory collector for execution traces.                            |
+
+## Utility Functions
+
+| Function                        | Description                                              |
+| ------------------------------- | -------------------------------------------------------- |
+| `tool(config)`                  | Creates a Zod-validated tool instance.                   |
+| `handoff(targetAgent, config?)` | Creates a model-visible delegation tool.                 |
+| `guardrail(config)`             | Creates a named guardrail definition.                    |
+| `middleware(config)`            | Creates a runner lifecycle middleware hook object.       |
+| `plugin(config)`                | Packages multiple middleware hooks into an agent plugin. |
+| `allow`                         | Pre-built guardrail decision for allowing execution.     |
+| `block(reason, metadata?)`      | Creates a blocking guardrail decision.                   |
+
+## Error Classes
+
+All EzAgent errors inherit from `EzAgentError`:
+
+- `AgentError` - Execution limit exceeded or invalid configuration
+- `ProviderError` - Provider network or response decoding failure
+- `ProviderConfigurationError` - Invalid provider credentials or options
+- `ToolError` - Tool execution failure or argument schema validation error
+- `GuardrailError` - Guardrail rejection
+- `HandoffError` - Invalid or circular handoff delegation
+- `TimeoutError` - Run deadline exceeded
+- `ValidationError` - Schema or type validation failure
+- `StorageError` - Session persistence error
+- `MemoryError` - Memory adapter operation error

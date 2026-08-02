@@ -1,0 +1,66 @@
+# Providers
+
+Providers connect EzAgent to large language models. EzAgent includes first-party adapters for OpenAI and Google Gemini out of the box.
+
+## OpenAI Provider
+
+```typescript
+import { OpenAIProvider } from "ezagent";
+
+const provider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!,
+  baseUrl: "https://api.openai.com/v1" // Optional custom base URL
+});
+```
+
+## Gemini Provider
+
+```typescript
+import { GeminiProvider } from "ezagent";
+
+const provider = new GeminiProvider({
+  apiKey: process.env.GEMINI_API_KEY!
+});
+```
+
+## Creating a Custom Provider
+
+You can implement the `Provider` interface to integrate any LLM (e.g. Anthropic, local Ollama):
+
+```typescript
+import type { Provider, ProviderChatRequest, ProviderResponse, ProviderStreamEvent } from "ezagent";
+
+export class CustomLLMProvider implements Provider {
+  readonly id = "custom-llm";
+  readonly capabilities = {
+    streaming: true,
+    tools: true,
+    structuredOutput: false,
+    imageInput: false
+  };
+
+  async chat(request: ProviderChatRequest): Promise<ProviderResponse> {
+    // Send request to your LLM and return normalized response
+    return {
+      provider: this.id,
+      model: request.model,
+      finishReason: "stop",
+      message: { role: "assistant", content: "Custom response" }
+    };
+  }
+
+  async *stream(request: ProviderChatRequest): AsyncGenerator<ProviderStreamEvent> {
+    yield { type: "response.start", provider: this.id, model: request.model };
+    yield { type: "text.delta", provider: this.id, delta: "Custom response" };
+    yield {
+      type: "response.completed",
+      provider: this.id,
+      response: await this.chat(request)
+    };
+  }
+}
+```
+
+---
+
+Learn about multi-turn conversation storage in [Sessions](./sessions.mdx).

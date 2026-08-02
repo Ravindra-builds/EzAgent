@@ -1,0 +1,47 @@
+# Defining Tools
+
+Tools allow your agents to fetch data, perform math, or call external APIs. In EzAgent, tools are defined using Zod schemas for parameter validation.
+
+## Defining a Tool
+
+Use the `tool()` helper function to define a tool:
+
+```typescript
+import { tool } from "ezagent";
+import { z } from "zod";
+
+export const weatherTool = tool({
+  name: "get_weather",
+  description: "Get the current weather temperature for a city.",
+  schema: z.object({
+    city: z.string().min(1, "City name is required")
+  }),
+  timeoutMs: 5000, // Optional tool execution deadline (ms)
+  execute: async ({ city }, context) => {
+    // You can access context.runId, context.signal, context.context
+    return {
+      city,
+      temperatureC: 24,
+      condition: "Sunny"
+    };
+  }
+});
+```
+
+## Adding Tools to an Agent
+
+Pass tools to the `Agent` configuration array:
+
+```typescript
+const agent = new Agent({
+  name: "WeatherBot",
+  instructions: "Answer weather queries using the get_weather tool.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  tools: [weatherTool]
+});
+```
+
+---
+
+Explore LLM provider integration in [Providers](./providers.mdx).

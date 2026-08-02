@@ -1,0 +1,58 @@
+# Storage Adapters
+
+Storage adapters persist session history to disk, memory, or external databases.
+
+## Built-In Adapters
+
+### 1. InMemoryStorage
+
+Fast, non-persistent storage for testing and quick local development:
+
+```typescript
+import { InMemoryStorage, Runner } from "ezagent";
+
+const storage = new InMemoryStorage();
+const runner = new Runner({ storage });
+```
+
+### 2. FileStorage
+
+Persists session transcripts as JSON files on disk:
+
+```typescript
+import { FileStorage, Runner } from "ezagent";
+
+const storage = new FileStorage({
+  directory: "./.ezagent/sessions"
+});
+
+const runner = new Runner({ storage });
+```
+
+## Creating Custom Storage Adapters
+
+Implement the `StorageAdapter` interface for Redis, PostgreSQL, MongoDB, etc.:
+
+```typescript
+import type { Session, StorageAdapter } from "ezagent";
+
+export class RedisStorage implements StorageAdapter {
+  async loadSession(sessionId: string): Promise<Session | null> {
+    // Fetch from Redis
+    return null;
+  }
+
+  async saveSession(session: Session): Promise<void> {
+    // Save to Redis
+  }
+
+  async deleteSession(sessionId: string): Promise<boolean> {
+    // Delete from Redis
+    return true;
+  }
+}
+```
+
+---
+
+Learn how to stream responses in [Streaming](./streaming.mdx).

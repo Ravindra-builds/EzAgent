@@ -1,0 +1,41 @@
+# Multi-Agent Handoffs
+
+Handoffs allow one agent to delegate work to another specialist agent while preserving the conversation transcript and preventing infinite loop recursion.
+
+## Example
+
+```typescript
+import { Agent, handoff, OpenAIProvider, Runner } from "ezagent";
+
+const provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! });
+
+// 1. Specialist Agent
+const billingAgent = new Agent({
+  name: "BillingSpecialist",
+  instructions: "You handle billing, refund, and payment inquiries.",
+  model: "gpt-4.1-mini",
+  provider
+});
+
+// 2. Router Agent
+const routerAgent = new Agent({
+  name: "TriageRouter",
+  instructions: "Route payment or refund queries to the BillingSpecialist.",
+  model: "gpt-4.1-mini",
+  provider,
+  handoffs: [handoff(billingAgent)]
+});
+
+// 3. Execute
+const runner = new Runner({ maxHandoffs: 5 });
+const result = await runner.run(routerAgent, {
+  input: "I need a refund for my last invoice."
+});
+
+console.log("Final Agent:", result.finalAgentName); // "BillingSpecialist"
+console.log("Response:", result.output);
+```
+
+---
+
+Inspect execution data in [Tracing](./tracing.mdx).

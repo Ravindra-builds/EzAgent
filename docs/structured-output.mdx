@@ -1,0 +1,41 @@
+# Structured Output & Automatic Repair
+
+Need your model to return valid JSON matching a specific TypeScript type? Define an `output` schema using Zod.
+
+## Defining Output Schema
+
+```typescript
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+import { z } from "zod";
+
+const UserProfileSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  hobbies: z.array(z.string())
+});
+
+const agent = new Agent({
+  name: "Extractor",
+  instructions: "Extract structured user information from input text.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  output: UserProfileSchema
+});
+
+const runner = new Runner({ maxOutputRetries: 3 });
+const result = await runner.run(agent, {
+  input: "My name is Sarah, I am 28 years old and I enjoy hiking and photography."
+});
+
+// result.output is fully typed as { name: string; age: number; hobbies: string[] }
+console.log(result.output.name); // "Sarah"
+console.log(result.output.hobbies); // ["hiking", "photography"]
+```
+
+## Automatic Repair Retries
+
+If the model outputs malformed JSON or misses a field required by your Zod schema, EzAgent automatically prompts the model to correct its mistake (up to `maxOutputRetries`).
+
+---
+
+Ensure safety and compliance in [Guardrails](./guardrails.mdx).

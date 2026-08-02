@@ -1,0 +1,42 @@
+# 30-Second Quickstart
+
+Here is how to create and run your very first AI agent with EzAgent.
+
+## Code Example
+
+Create a file named `index.ts`:
+
+```typescript
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+
+// 1. Define your agent
+const agent = new Agent({
+  name: "HelperAgent",
+  instructions: "You are a friendly assistant. Keep your answers brief.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+});
+
+// 2. Create a Runner and execute
+const runner = new Runner();
+const result = await runner.run(agent, {
+  input: "What is EzAgent in one simple sentence?"
+});
+
+// 3. Print the result
+console.log(result.output);
+```
+
+## Running the Interactive Playground
+
+EzAgent comes with a local interactive CLI playground for quick testing:
+
+```bash
+# 1. Copy environment template
+cp .env.example .env
+
+# 2. Run the playground
+npm run playground
+```
+
+Try typing messages directly in the terminal! Type `/trace` to see detailed execution logs or `/exit` to quit.

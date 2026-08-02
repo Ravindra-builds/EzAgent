@@ -199,29 +199,42 @@ function readApiKey(name: "GEMINI_API_KEY" | "OPENAI_API_KEY"): string | undefin
 }
 
 function printStartup(selection: ProviderSelection, currentSessionId: string): void {
-  console.log("\nEzAgent Playground");
-  console.log("──────────────────");
-  console.log(`Provider: ${selection.kind}`);
-  console.log(`Session:  ${currentSessionId}`);
-  console.log("Commands: /exit, /reset, /trace");
+  console.log("\n┌──────────────────────────────┐");
+  console.log("│     EzAgent Playground       │");
+  console.log("└──────────────────────────────┘");
+  console.log(`  Provider : ${selection.kind}`);
+  console.log(`  Model    : ${process.env.EZAGENT_MODEL ?? defaultModel(selection.kind)}`);
+  console.log(`  Session  : ${currentSessionId}`);
+  console.log(`  Commands : /exit  /reset  /trace`);
   if (selection.setupMessage !== undefined) {
-    console.log(`\n${selection.setupMessage}`);
-    console.log("To configure a real provider:");
-    console.log("  1. Copy .env.example to .env");
-    console.log("  2. Set OPENAI_API_KEY or GEMINI_API_KEY");
-    console.log("  3. Set EZAGENT_PROVIDER=openai or gemini");
+    console.log(`\n⚠  ${selection.setupMessage}`);
+    console.log("\nTo connect a real provider:");
+    console.log("  1. cp .env.example .env");
+    console.log("  2. Add your API key:");
+    console.log("       OPENAI_API_KEY=sk-...    (for OpenAI)");
+    console.log("       GEMINI_API_KEY=AQ....    (for Gemini)");
+    console.log("  3. Set the provider:");
+    console.log("       EZAGENT_PROVIDER=openai  (or gemini)");
+    console.log("  4. Restart: npm run playground");
+    console.log("\n  See .env.example for all available options.");
   } else {
-    console.log("\nLoaded provider configuration from environment/.env.");
+    console.log("\n  ✓ Loaded provider configuration from .env");
   }
   console.log();
 }
 
 function printHelp(): void {
-  console.log("Usage: npm run playground");
-  console.log("Automatically loads .env through dotenv.");
-  console.log("Copy .env.example to .env, then configure OPENAI_API_KEY or GEMINI_API_KEY.");
-  console.log("Set EZAGENT_PROVIDER=openai or EZAGENT_PROVIDER=gemini.");
-  console.log("Without a key, a local demo provider starts so the UX can still be explored.");
+  console.log("Usage: npm run playground\n");
+  console.log("Interactive CLI for EzAgent. Automatically loads .env via dotenv.\n");
+  console.log("Setup:");
+  console.log("  1. cp .env.example .env");
+  console.log("  2. Set OPENAI_API_KEY or GEMINI_API_KEY in .env");
+  console.log("  3. Set EZAGENT_PROVIDER=openai or EZAGENT_PROVIDER=gemini\n");
+  console.log("Environment variables:");
+  console.log("  EZAGENT_PROVIDER     Provider to use: openai | gemini  (default: openai)");
+  console.log("  EZAGENT_MODEL        Override default model name");
+  console.log("  EZAGENT_SESSION_ID   Session ID for conversation persistence\n");
+  console.log("Without a valid API key, the playground runs in local demo mode.");
 }
 
 function defaultModel(kind: ProviderSelection["kind"]): string {

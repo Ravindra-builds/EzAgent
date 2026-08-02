@@ -2,13 +2,31 @@
   "name": "ezagent",
   "version": "0.1.0",
   "description": "A lightweight, provider-agnostic TypeScript SDK for building transparent AI agents.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravindra-builds/EzAgent.git"
+  },
+  "homepage": "https://EzAgent.mintlify.site",
+  "bugs": {
+    "url": "https://github.com/ravindra-builds/EzAgent/issues"
+  },
+  "author": "Ravindra yadav",
   "keywords": [
     "ai",
     "agent",
+    "ai-agent",
     "llm",
+    "agent-sdk",
+    "sdk",
+    "typescript",
     "openai",
     "gemini",
-    "typescript"
+    "tool-calling",
+    "multi-agent",
+    "streaming",
+    "guardrails",
+    "memory",
+    "rag"
   ],
   "license": "MIT",
   "type": "module",
@@ -106,13 +124,10 @@
   },
   "files": [
     "dist",
-    "assets",
-    "docs",
-    "examples",
     "README.md",
-    "CONTRIBUTING.md",
-    "CHANGELOG.md",
     "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
     ".env.example"
   ],
   "engines": {
@@ -124,6 +139,7 @@
     "check:examples": "tsc --noEmit -p tsconfig.examples.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write .",

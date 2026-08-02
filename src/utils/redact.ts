@@ -2,7 +2,8 @@ const SENSITIVE_PATTERNS: readonly [RegExp, string][] = [
   [/(Bearer\s+)[^\s,;]+/gi, "$1[REDACTED]"],
   [/(\b(?:api[_-]?key|token|authorization)\s*[=:]\s*["']?)[^\s"',;]+/gi, "$1[REDACTED]"],
   [/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[REDACTED]"],
-  [/\bAIza[A-Za-z0-9_-]{20,}\b/g, "[REDACTED]"]
+  [/\bAIza[A-Za-z0-9_-]{20,}\b/g, "[REDACTED]"],
+  [/\bAQ\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED]"]
 ];
 
 /** Removes common credential shapes before text is put in an error message. */

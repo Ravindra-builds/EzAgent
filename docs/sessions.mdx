@@ -1,0 +1,47 @@
+# Sessions & Conversation History
+
+Sessions store transcript history across multiple runner calls, enabling multi-turn conversations.
+
+## Using Sessions with Storage
+
+Pass a `storage` adapter to `Runner` and specify a `sessionId` in `run()`:
+
+```typescript
+import { Agent, InMemoryStorage, OpenAIProvider, Runner } from "ezagent";
+
+const storage = new InMemoryStorage();
+const runner = new Runner({ storage });
+
+const agent = new Agent({
+  name: "ChatBot",
+  instructions: "You remember user details across turns.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+});
+
+// Turn 1
+await runner.run(agent, {
+  input: "Hi, my name is Alex.",
+  sessionId: "user-session-123"
+});
+
+// Turn 2
+const reply = await runner.run(agent, {
+  input: "What is my name?",
+  sessionId: "user-session-123"
+});
+
+console.log(reply.output); // "Your name is Alex."
+```
+
+## Clearing Sessions
+
+You can delete a session transcript from storage at any time:
+
+```typescript
+await storage.deleteSession("user-session-123");
+```
+
+---
+
+Check out [Memory](./memory.mdx) for storing key facts outside transcripts.

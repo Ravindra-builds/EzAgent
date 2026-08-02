@@ -1,0 +1,45 @@
+# Long-Term Factual Memory
+
+While **Sessions** retain full conversation transcripts, **Memory** retrieves specific relevant facts (e.g. user preferences, rules) and injects them into the agent's prompt dynamically.
+
+## Using InMemoryMemory
+
+`InMemoryMemory` stores facts and uses keyword/lexical matching to retrieve relevant facts during a run:
+
+```typescript
+import { Agent, InMemoryMemory, OpenAIProvider, Runner } from "ezagent";
+
+// 1. Initialize memory adapter
+const memory = new InMemoryMemory();
+
+// 2. Save facts
+await memory.save({
+  namespace: "user-prefs",
+  content: "User prefers answers in bullet points."
+});
+
+// 3. Configure Agent with memory adapter
+const agent = new Agent({
+  name: "MemoryAgent",
+  instructions: "Help the user.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  memory: {
+    adapter: memory,
+    namespace: "user-prefs"
+  }
+});
+
+// 4. Run agent with memory query
+const runner = new Runner();
+const result = await runner.run(agent, {
+  input: "List 3 tips for studying.",
+  memory: { query: "preferences" }
+});
+
+console.log(result.output);
+```
+
+---
+
+Learn about session storage options in [Storage](./storage.mdx).

@@ -1,0 +1,49 @@
+# Guardrails
+
+Guardrails allow you to inspect, approve, or block inputs, outputs, tool calls, and human approvals before execution continues.
+
+## Defining Guardrails
+
+Use `allow` or `block()` helpers to make decisions:
+
+```typescript
+import { Agent, allow, block, OpenAIProvider, Runner } from "ezagent";
+import type { InputGuardrail, OutputGuardrail } from "ezagent";
+
+// Input Guardrail: Block sensitive keywords
+const blockSecrets: InputGuardrail = {
+  name: "block_secrets",
+  check: ({ input }) => {
+    if (typeof input === "string" && input.toLowerCase().includes("secret_password")) {
+      return block("Input contains prohibited secret text.");
+    }
+    return allow;
+  }
+};
+
+// Output Guardrail: Verify clean output
+const cleanOutput: OutputGuardrail = {
+  name: "clean_output",
+  check: ({ text }) => {
+    if (text.includes("CONFIDENTIAL")) {
+      return block("Output contained confidential tags.");
+    }
+    return allow;
+  }
+};
+
+const agent = new Agent({
+  name: "SecureAgent",
+  instructions: "Answer user queries safely.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  guardrails: {
+    input: [blockSecrets],
+    output: [cleanOutput]
+  }
+});
+```
+
+---
+
+Delegate work across agents in [Handoffs](./handoffs.mdx).

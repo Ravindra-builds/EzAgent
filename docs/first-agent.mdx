@@ -1,0 +1,39 @@
+# Creating Your First Agent
+
+An `Agent` in EzAgent is an immutable configuration object. It stores instructions, the model provider, registered tools, and settings.
+
+## Basic Example
+
+```typescript
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+
+const agent = new Agent({
+  name: "Greeter",
+  instructions: "Greet the user politely in plain English.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+});
+
+const runner = new Runner();
+const result = await runner.run(agent, {
+  input: "Hello!"
+});
+
+console.log("Response:", result.output);
+```
+
+## Agent Configuration Options
+
+| Option         | Type                 | Required | Description                                         |
+| -------------- | -------------------- | -------- | --------------------------------------------------- |
+| `name`         | `string`             | Yes      | Name of the agent for logs and traces.              |
+| `instructions` | `string`             | Yes      | System prompt giving directions to the model.       |
+| `provider`     | `Provider`           | Yes      | LLM adapter instance (OpenAI, Gemini, etc.).        |
+| `model`        | `string`             | Yes      | Model ID (e.g. `gpt-4.1-mini`, `gemini-2.0-flash`). |
+| `tools`        | `readonly Tool[]`    | No       | List of tools the agent is allowed to execute.      |
+| `guardrails`   | `AgentGuardrails`    | No       | Safety checks for inputs, outputs, and tool calls.  |
+| `handoffs`     | `readonly Handoff[]` | No       | Other agents this agent can delegate to.            |
+
+---
+
+Next up: Learn how the execution loop works in [Runtime](./runtime.mdx).

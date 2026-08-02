@@ -1,0 +1,43 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "EzAgent",
+  "logo": {
+    "light": "/assets/ezagent-logo.png",
+    "dark": "/assets/ezagent-logo.png"
+  },
+  "favicon": "/assets/ezagent-logo.png",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["docs/introduction", "docs/installation", "docs/quickstart", "docs/first-agent"]
+    },
+    {
+      "group": "Core Architecture",
+      "pages": ["docs/runtime", "docs/tools", "docs/providers"]
+    },
+    {
+      "group": "State & Persistence",
+      "pages": ["docs/sessions", "docs/memory", "docs/storage"]
+    },
+    {
+      "group": "Advanced Features",
+      "pages": ["docs/streaming", "docs/structured-output", "docs/guardrails", "docs/handoffs"]
+    },
+    {
+      "group": "Observability & Extensibility",
+      "pages": ["docs/tracing", "docs/plugins", "docs/middleware"]
+    },
+    {
+      "group": "Reference",
+      "pages": ["docs/faq", "docs/api-reference"]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/Ravindra-builds/ezagent"
+  }
+}

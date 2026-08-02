@@ -2,7 +2,7 @@
 
 Thank you for contributing to EzAgent. The project intentionally implements its own agent runtime and does not wrap another agent framework.
 
-## Project setup
+## Project Setup
 
 Requirements:
 
@@ -18,56 +18,62 @@ cp .env.example .env
 
 `.env` is only needed for real-provider examples or the playground. The test suite never makes real API calls.
 
-## Daily commands
+## Development Workflow
 
-```bash
-npm run typecheck       # strict TypeScript
-npm run check:examples  # type-check every example
-npm test                # Vitest suite
-npm run lint            # ESLint
-npm run format:check    # Prettier verification
-npm run check           # all checks above
-npm run build           # ESM, CJS, and declaration bundles
-npm run pack:check      # build plus npm pack --dry-run
-npm run playground      # interactive local playground
-```
+| Command                  | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| `npm run typecheck`      | Strict TypeScript verification                           |
+| `npm run check:examples` | Type-check every example                                 |
+| `npm test`               | Run the Vitest suite                                     |
+| `npm run test:watch`     | Run the Vitest suite in watch mode                       |
+| `npm run lint`           | Run ESLint                                               |
+| `npm run lint:fix`       | Run ESLint and auto-fix issues                           |
+| `npm run format`         | Run Prettier and format files                            |
+| `npm run format:check`   | Run Prettier verification                                |
+| `npm run check`          | Run all checks (format, lint, typecheck, examples, test) |
+| `npm run build`          | Produce ESM, CJS, and declaration bundles                |
+| `npm run pack:check`     | Run build plus npm pack --dry-run                        |
+| `npm run playground`     | Run the interactive local playground                     |
 
-Run `npm run check` before opening a pull request. Run `npm run pack:check` when changing exports, package metadata, documentation, or build configuration.
+## Build
 
-## Commit style
+Running `npm run build` uses `tsup` to produce ESM (`.js`), CommonJS (`.cjs`), and TypeScript declaration (`.d.ts`) bundles in the `dist/` directory.
 
-Use concise, imperative commit messages. Conventional Commit prefixes are recommended:
+## Test
 
-```text
-feat: add a redis storage adapter
-fix: preserve tool-call IDs in streaming
-docs: clarify session metadata behavior
-test: cover provider retry exhaustion
-chore: update package metadata
-```
+The project uses Vitest for testing.
 
-Keep a commit focused. Do not mix broad formatting changes with behavior changes.
+- Place deterministic unit tests near their domain under `tests/`.
+- Tests are structured across `tests/runtime/`, `tests/integration/`, and `tests/mocks/`.
+- Use `tests/mocks/MockProvider` for runtime tests; do not call real providers. The test suite never makes real API calls.
+- Add integration coverage whenever a feature crosses Agent → Runner → Provider → Tool → Result boundaries.
+- Test both success and graceful failure paths.
+- Keep tests independent: no test should depend on execution order or shared environment state.
 
-## Folder structure
+## Lint
 
-```text
-src/
-  agent/       immutable Agent configuration and plugins
-  runtime/     bounded execution loop, streaming, retries, middleware
-  provider/    vendor protocol adapters
-  tools/       Zod validation and tool execution
-  handoff/     delegation targets and loop-safe transitions
-  session/     transcript model
-  storage/     session persistence adapters
-  memory/      factual memory contracts/adapters
-  guardrails/  safety decisions
-  output/      structured-output conversion and validation
-  tracing/     immutable traces/exporters
-  events/      typed event bus
-  types/       provider-neutral shared types
-```
+The project uses ESLint and Prettier for code formatting and linting. Run `npm run lint` and `npm run format` before committing.
 
-Keep responsibilities one-way. Providers must not import Runner. Agent must not execute. Storage must not own memory. Trace exporters must not alter runtime success/failure behavior.
+## Examples
+
+Every example must:
+
+1. use a documented public API;
+2. handle missing API keys clearly;
+3. avoid hidden external services beyond the configured provider;
+4. be listed in the README examples table;
+5. pass `npm run check:examples`.
+
+Examples importing the package name are mapped to local source through `tsconfig.examples.json`, so they compile before publishing.
+
+## Coding Standards
+
+- Use double quotes for strings.
+- Always use semicolons.
+- Prefer `readonly` properties and `const` declarations.
+- Prefer immutable objects and use `Object.freeze` where appropriate.
+- Group imports consistently (e.g., Node.js built-ins, third-party libraries, internal modules).
+- Do not use default exports; use named exports instead.
 
 ## Adding a provider
 
@@ -96,38 +102,46 @@ const example = tool({
 
 Tool schemas must describe object parameters. Preserve cancellation through `context.signal`, return JSON-serializable values, and add tests for valid input, invalid input, timeouts, and thrown exceptions when applicable.
 
-## Adding examples
+## Commit Style
 
-Every example must:
+Use concise, imperative commit messages. Conventional Commit prefixes are recommended:
 
-1. use a documented public API;
-2. handle missing API keys clearly;
-3. avoid hidden external services beyond the configured provider;
-4. be listed in the README examples table;
-5. pass `npm run check:examples`.
-
-Examples importing the package name are mapped to local source through `tsconfig.examples.json`, so they compile before publishing.
-
-## Tests
-
-- Place deterministic unit tests near their domain under `tests/`.
-- Use `tests/mocks/MockProvider` for runtime tests; do not call real providers.
-- Add integration coverage whenever a feature crosses Agent → Runner → Provider → Tool → Result boundaries.
-- Test both success and graceful failure paths.
-- Keep tests independent: no test should depend on execution order or shared environment state.
-
-## Documentation
-
-Update the relevant guide in `docs/`, the API reference when adding a public export, the README examples table, and `CHANGELOG.md` for user-visible changes.
-
-## Pull requests
-
-Before requesting review:
-
-```bash
-npm run check
-npm run build
-npm run pack:check
+```text
+feat: add a redis storage adapter
+fix: preserve tool-call IDs in streaming
+docs: clarify session metadata behavior
+test: cover provider retry exhaustion
+chore: update package metadata
 ```
 
-Describe the problem, behavior change, tests, docs updates, and any intentional limitations in the pull request body.
+Keep a commit focused. Do not mix broad formatting changes with behavior changes.
+
+## Folder Structure
+
+```text
+src/
+  agent/       immutable Agent configuration and plugins
+  runtime/     bounded execution loop, streaming, retries, middleware
+  provider/    vendor protocol adapters
+  tools/       Zod validation and tool execution
+  handoff/     delegation targets and loop-safe transitions
+  session/     transcript model
+  storage/     session persistence adapters
+  memory/      factual memory contracts/adapters
+  guardrails/  safety decisions
+  output/      structured-output conversion and validation
+  tracing/     immutable traces/exporters
+  events/      typed event bus
+  types/       provider-neutral shared types
+```
+
+Keep responsibilities one-way. Providers must not import Runner. Agent must not execute. Storage must not own memory. Trace exporters must not alter runtime success/failure behavior.
+
+## Pull Requests
+
+Before requesting review, ensure you have completed the following checklist:
+
+- [ ] Run `npm run check` (runs format, lint, tests, etc.)
+- [ ] Run `npm run build`
+- [ ] Run `npm run pack:check`
+- [ ] Describe the problem, behavior change, tests, docs updates, and any intentional limitations in the pull request body.

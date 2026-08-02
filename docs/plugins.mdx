@@ -1,0 +1,39 @@
+# Plugins
+
+Plugins bundle reusable middleware hooks so you can attach functionality (like logging or auditing) directly to an Agent.
+
+## Defining a Plugin
+
+Use the `plugin()` function to package middleware hooks:
+
+```typescript
+import { middleware, plugin } from "ezagent";
+
+export const loggerPlugin = plugin({
+  name: "logger_plugin",
+  middleware: [
+    middleware({
+      name: "run_logger",
+      before: ({ runId }) => console.log(`Starting run: ${runId}`),
+      after: ({ runId, durationMs }) => console.log(`Run ${runId} finished in ${durationMs}ms`)
+    })
+  ]
+});
+```
+
+## Attaching a Plugin to an Agent
+
+Use `.use()` on an Agent instance:
+
+```typescript
+const agent = new Agent({
+  name: "PluggedAgent",
+  instructions: "Do work.",
+  model: "gpt-4.1-mini",
+  provider
+}).use(loggerPlugin);
+```
+
+---
+
+Learn more about lifecycle hooks in [Middleware](./middleware.mdx).

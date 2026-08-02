@@ -1,0 +1,26 @@
+# Introduction to EzAgent
+
+**EzAgent** is a lightweight TypeScript SDK for building AI agents. Unlike complex frameworks that hide what is happening under the hood, EzAgent gives you full control over how your agent runs, calls tools, handles errors, and remembers past conversations.
+
+## Why EzAgent?
+
+- **Simple & Clear**: No complicated abstractions. You write standard TypeScript.
+- **Provider Agnostic**: Use OpenAI, Google Gemini, or bring your own custom LLM provider.
+- **Full Control**: Transparent event tracking, step limits, retries, and step-by-step trace inspection.
+- **Type-Safe**: Built with TypeScript and Zod for schema validation.
+- **Production Ready**: Built-in limits (max tool calls, max steps), automatic output repair, timeouts, and clean cancellation.
+
+## Key Concepts
+
+| Concept        | Description                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| **Agent**      | Holds configuration like instructions, provider, tools, and guardrails.                     |
+| **Runner**     | Executes the agent in a loop, handling LLM responses, running tools, and returning results. |
+| **Tools**      | Functions your agent can run to fetch data or take actions.                                 |
+| **Providers**  | Connectors to LLMs (OpenAI, Gemini, etc.).                                                  |
+| **Sessions**   | Store conversation transcripts so agents remember past turns.                               |
+| **Guardrails** | Rules that inspect and approve/block inputs, outputs, and tool calls.                       |
+
+---
+
+Ready to get started? Check out the [Installation Guide](./installation.mdx) or jump straight to the [Quickstart](./quickstart.mdx)!

@@ -1,0 +1,30 @@
+# Tracing & Telemetry
+
+EzAgent captures detailed, immutable `RunTrace` records for every run. Traces record all LLM calls, tool executions, retries, guardrails, and handoffs with exact timestamps and durations.
+
+## Accessing Traces
+
+Traces are available directly on the result object or via `InMemoryTraceExporter`:
+
+```typescript
+import { Agent, InMemoryTraceExporter, OpenAIProvider, Runner } from "ezagent";
+
+const traceExporter = new InMemoryTraceExporter();
+const runner = new Runner({
+  generateRunId: () => "run_12345",
+  traceExporter
+});
+
+const result = await runner.run(agent, { input: "Hello" });
+
+// Access trace from result
+console.log(result.trace.durationMs);
+console.log(result.trace.providerCalls);
+
+// Access saved trace from exporter
+const savedTrace = traceExporter.get("run_12345");
+```
+
+---
+
+Extend agent behavior using [Plugins](./plugins.mdx).

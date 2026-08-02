@@ -24,6 +24,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The playground now loads `.env`, explains setup, and falls back to local demo mode when provider keys are absent.
 - Build output includes ESM, CommonJS, declarations, documented subpath exports, examples, docs, assets, and this changelog.
 
+### Fixed
+
+- Secret redaction now covers Gemini API key patterns (AQ. prefix)
+- npm package no longer ships docs/, examples/, and assets/ to reduce download size
+
 ### Known limitations
 
 - First-party provider retry replay is intentionally limited to non-streaming calls; replaying a visible stream can duplicate token output.

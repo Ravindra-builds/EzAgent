@@ -1,0 +1,39 @@
+# Lifecycle Middleware
+
+Middleware hooks let you run custom logic before or after a run, or capture errors when a run fails.
+
+## Creating Middleware
+
+Use the `middleware()` helper function:
+
+```typescript
+import { middleware, Runner } from "ezagent";
+
+const auditMiddleware = middleware({
+  name: "audit_logger",
+  before: async (context) => {
+    console.log(`[START] Run ID: ${context.runId} for Agent: ${context.agent.name}`);
+  },
+  after: async (context) => {
+    console.log(`[COMPLETE] Run ID: ${context.runId} in ${context.durationMs}ms`);
+  },
+  onError: async (context) => {
+    console.error(`[ERROR] Run ID: ${context.runId} failed: ${context.error.message}`);
+  }
+});
+
+// Pass to Runner
+const runner = new Runner({
+  middleware: [auditMiddleware]
+});
+```
+
+## Hook Context Properties
+
+- **`before`**: `{ runId, agent, mode, signal }`
+- **`after`**: `{ runId, agent, mode, result, durationMs }`
+- **`onError`**: `{ runId, agent, mode, error, durationMs }`
+
+---
+
+Got questions? Read the [FAQ](./faq.mdx).

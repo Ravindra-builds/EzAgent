@@ -1,0 +1,29 @@
+# Frequently Asked Questions & Limitations
+
+Here are common questions and design decisions behind EzAgent.
+
+## Frequently Asked Questions
+
+### 1. Does EzAgent wrap LangChain or AutoGen?
+
+No. EzAgent is a lightweight, zero-dependency orchestration runtime built natively in TypeScript.
+
+### 2. Can I use custom LLM models like local Llama or Ollama?
+
+Yes! Simply implement the `Provider` interface (`chat()` and `stream()` methods) and pass your custom provider instance to the Agent.
+
+### 3. How does retry logic work?
+
+EzAgent automatically retries non-streaming network or rate-limit errors (HTTP 429, 5xx) with exponential backoff. Streaming responses are not retried mid-stream to avoid duplicating tokens for the consumer.
+
+### 4. Is `FileStorage` safe for multi-process applications?
+
+`FileStorage` uses atomic file replacement suitable for single-node / single-process environments. For distributed multi-process infrastructure, implement a custom `StorageAdapter` backed by Redis or PostgreSQL.
+
+### 5. How are handoffs protected against infinite loops?
+
+EzAgent tracks visited agent names in the run state and enforces a configurable `maxHandoffs` cap (default: 5). If a handoff cycle or excessive delegation occurs, a `HandoffError` is thrown immediately.
+
+---
+
+Need API details? See the [API Reference](./api-reference.mdx).

@@ -108,32 +108,6 @@ Runner (sessions, memory, middleware, limits, retries, traces)
 
 EzAgent owns the orchestration loop. Providers own vendor protocol translation. Tools, storage, memory, tracing, middleware, and plugins are independent extension boundaries.
 
-## Playground Setup
-
-The playground automatically loads `.env` and works in local demo mode when keys are missing.
-
-```bash
-cp .env.example .env
-npm install
-npm run playground
-```
-
-Configure a real provider in `.env`:
-
-```dotenv
-EZAGENT_PROVIDER=openai
-OPENAI_API_KEY=your_key_here
-# Or set EZAGENT_PROVIDER=gemini and GEMINI_API_KEY=your_key_here
-```
-
-Useful commands:
-
-- `/exit` — leave the playground
-- `/reset` — clear the in-memory session
-- `/trace` — print the most recent trace
-
-Run `npm run playground -- --help` for a non-interactive setup check. Full details are in the [playground guide](docs/playground.md).
-
 ## Examples
 
 All examples are type-checked by `npm run check:examples` and are included in the npm package.
@@ -165,17 +139,6 @@ Documentation lives in [`docs/`](docs/README.md) and is included in the package.
 - [Handoffs, tracing, middleware, and plugins](docs/handoffs-tracing-middleware-plugins.md)
 - [API reference](docs/api-reference.md)
 - [Playground](docs/playground.md)
-
-## Development
-
-```bash
-npm install
-npm run check
-npm run build
-npm run pack:check
-```
-
-`npm run check` runs formatting, linting, strict TypeScript, example validation, and Vitest. `npm run pack:check` validates the publishable tarball contents.
 
 ## Contributing
 

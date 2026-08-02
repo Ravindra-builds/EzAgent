@@ -1,0 +1,41 @@
+# Real-Time Streaming
+
+EzAgent supports real-time streaming of tokens, tool calls, and completion events using standard `for await...of` async loops.
+
+## Basic Token Streaming Example
+
+```typescript
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+
+const agent = new Agent({
+  name: "Streamer",
+  instructions: "Write a poem about space exploration.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+});
+
+const runner = new Runner();
+
+for await (const event of runner.stream(agent, {
+  input: "Write a short poem."
+})) {
+  if (event.type === "token") {
+    process.stdout.write(event.delta);
+  } else if (event.type === "tool:start") {
+    console.log(`\n[Running tool: ${event.toolName}]`);
+  } else if (event.type === "result") {
+    console.log("\nDone! Full output:", event.result.output);
+  }
+}
+```
+
+## Stream Event Types
+
+- `token`: Delta string received from LLM
+- `tool:start`: Tool invocation started
+- `tool:end`: Tool execution completed
+- `result`: Final completed `RunResult` object
+
+---
+
+Next: Extract type-safe JSON objects in [Structured Output](./structured-output.mdx).
