@@ -1,40 +1,59 @@
 # Long-Term Factual Memory
 
-While **Sessions** retain full conversation transcripts, **Memory** retrieves specific relevant facts (e.g. user preferences, rules) and injects them into the agent's prompt dynamically.
+While **Sessions** retain full conversation turn history, **Memory** dynamically retrieves specific relevant facts (e.g. user preferences, corporate policies, account details) and injects them into the prompt before calling the LLM.
 
-## Using InMemoryMemory
+---
 
-`InMemoryMemory` stores facts and uses keyword/lexical matching to retrieve relevant facts during a run:
+## Memory vs. Sessions
+
+| Feature       | Sessions                                               | Memory                                      |
+| ------------- | ------------------------------------------------------ | ------------------------------------------- |
+| **Purpose**   | Retain sequential turn-by-turn conversation transcript | Store discrete factual snippets             |
+| **Lifecycle** | Loaded on every turn for a specific `sessionId`        | Retrieved on-demand based on a search query |
+| **Storage**   | Sequential list of ChatMessage objects                 | Searchable index of MemoryRecord items      |
+
+---
+
+## Using `InMemoryMemory`
+
+`InMemoryMemory` stores facts and uses lexical matching to retrieve relevant items:
 
 ```typescript
 import { Agent, InMemoryMemory, OpenAIProvider, Runner } from "ezagent";
 
-// 1. Initialize memory adapter
-const memory = new InMemoryMemory();
+// 1. Initialize the memory store
+const memoryStore = new InMemoryMemory();
 
-// 2. Save facts
-await memory.save({
-  namespace: "user-prefs",
-  content: "User prefers answers in bullet points."
+// 2. Save facts into a namespace
+await memoryStore.save({
+  namespace: "user_preferences",
+  content: "User prefers concise answers written in bullet points."
 });
 
-// 3. Configure Agent with memory adapter
+await memoryStore.save({
+  namespace: "user_preferences",
+  content: "User works as a Senior TypeScript Developer."
+});
+
+// 3. Configure Agent to use memory
 const agent = new Agent({
-  name: "MemoryAgent",
-  instructions: "Help the user.",
+  name: "PersonalizedAgent",
+  instructions: "Help the user with technical questions.",
   model: "gpt-4.1-mini",
   provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
   memory: {
-    adapter: memory,
-    namespace: "user-prefs"
+    adapter: memoryStore,
+    namespace: "user_preferences"
   }
 });
 
-// 4. Run agent with memory query
+// 4. Run agent with a memory search query
 const runner = new Runner();
 const result = await runner.run(agent, {
-  input: "List 3 tips for studying.",
-  memory: { query: "preferences" }
+  input: "How should I structure my new project?",
+  memory: {
+    query: "preferences developer" // Retrieves relevant facts
+  }
 });
 
 console.log(result.output);
@@ -42,4 +61,14 @@ console.log(result.output);
 
 ---
 
-Learn about session storage options in [Storage](./storage.mdx).
+## Memory Injection in Prompts
+
+When memory facts are retrieved:
+
+1. `Runner` queries `memory.adapter.search(query)`.
+2. `Runner` formats retrieved facts into an ephemeral `system` message.
+3. The LLM receives the relevant facts as system context _without_ adding them permanently to the session conversation history.
+
+---
+
+Next: Learn about storage persistence adapters in [Storage Adapters](./storage).

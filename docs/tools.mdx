@@ -1,47 +1,101 @@
 # Defining Tools
 
-Tools allow your agents to fetch data, perform math, or call external APIs. In EzAgent, tools are defined using Zod schemas for parameter validation.
+Tools allow your agents to fetch data, compute calculations, query databases, or call third-party APIs. In EzAgent, tools are created using the `tool()` helper function and Zod schemas.
+
+---
 
 ## Defining a Tool
 
-Use the `tool()` helper function to define a tool:
+Use `tool()` to construct a type-safe tool definition:
 
 ```typescript
 import { tool } from "ezagent";
 import { z } from "zod";
 
-export const weatherTool = tool({
+export const getWeatherTool = tool({
   name: "get_weather",
-  description: "Get the current weather temperature for a city.",
+  description: "Get the current weather forecast for a specified city.",
   schema: z.object({
-    city: z.string().min(1, "City name is required")
+    city: z.string().min(1, "City name must not be empty"),
+    units: z.enum(["celsius", "fahrenheit"]).default("celsius")
   }),
-  timeoutMs: 5000, // Optional tool execution deadline (ms)
-  execute: async ({ city }, context) => {
-    // You can access context.runId, context.signal, context.context
+  timeoutMs: 5000, // Optional tool-level deadline in milliseconds
+  execute: async ({ city, units }, context) => {
+    // Access context.runId, context.signal, context.context if needed
+    console.log(`Tool runId: ${context.runId}`);
+
+    // Call external weather API
+    const response = await fetch(`https://api.weather.example/v1?city=${city}&units=${units}`, {
+      signal: context.signal // Respect cancellation!
+    });
+
+    const data = await response.json();
     return {
       city,
-      temperatureC: 24,
-      condition: "Sunny"
+      temperature: data.temp ?? 22,
+      units,
+      condition: data.condition ?? "Sunny"
     };
   }
 });
 ```
 
-## Adding Tools to an Agent
+---
 
-Pass tools to the `Agent` configuration array:
+## Tool Execution Context (`ToolContext`)
+
+Every tool's `execute` function receives `context` as its second argument:
 
 ```typescript
-const agent = new Agent({
-  name: "WeatherBot",
-  instructions: "Answer weather queries using the get_weather tool.",
-  model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
-  tools: [weatherTool]
+export interface ToolContext<TContext = unknown> {
+  readonly runId: string; // Unique identifier for the current run
+  readonly toolCallId: string; // ID assigned to this tool call by the LLM
+  readonly signal: AbortSignal; // Cancellation signal to pass to async calls
+  readonly context?: TContext; // Custom user context passed to runner.run()
+}
+```
+
+---
+
+## Error Handling in Tools
+
+If your tool's `execute` function throws an error:
+
+1. `Runner` catches the exception.
+2. `Runner` converts the error into a structured tool error message (`TOOL_ERROR`).
+3. `Runner` passes the error message back to the LLM as a tool result message.
+4. The LLM gets a chance to recover, explain the error, or call an alternative tool!
+
+```typescript
+export const databaseQueryTool = tool({
+  name: "query_database",
+  description: "Queries the customer SQL database.",
+  schema: z.object({ sql: z.string() }),
+  execute: async ({ sql }) => {
+    if (sql.includes("DROP TABLE")) {
+      throw new Error("Dangerous SQL queries are prohibited.");
+    }
+    return { rows: [] };
+  }
 });
 ```
 
 ---
 
-Explore LLM provider integration in [Providers](./providers.mdx).
+## Adding Tools to an Agent
+
+Pass tools in the `tools` array when defining your `Agent`:
+
+```typescript
+const agent = new Agent({
+  name: "AssistantWithTools",
+  instructions: "Use get_weather and query_database tools whenever required.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  tools: [getWeatherTool, databaseQueryTool]
+});
+```
+
+---
+
+Next: Learn about model providers in [LLM Providers](./providers).

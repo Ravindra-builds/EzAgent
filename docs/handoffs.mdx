@@ -1,41 +1,78 @@
 # Multi-Agent Handoffs
 
-Handoffs allow one agent to delegate work to another specialist agent while preserving the conversation transcript and preventing infinite loop recursion.
+Multi-Agent Handoffs allow a primary router agent to delegate complex tasks to specialized agents (e.g. Triage → Billing Specialist → Tech Support Specialist) while preserving full conversation history.
 
-## Example
+---
+
+## How Handoffs Work
+
+1. You wrap a target agent in a `handoff(targetAgent)` call and pass it to the primary agent's `handoffs` array.
+2. EzAgent automatically generates a model-visible delegation tool (e.g. `handoff_to_billingspecialist`).
+3. When the primary agent decides to delegate, it calls the handoff tool.
+4. `Runner` catches the handoff tool call, switches the active agent to the target agent, appends system transition context, and continues execution!
+
+---
+
+## Multi-Agent Triage Router Example
 
 ```typescript
 import { Agent, handoff, OpenAIProvider, Runner } from "ezagent";
 
 const provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! });
 
-// 1. Specialist Agent
+// 1. Define Specialist Agents
 const billingAgent = new Agent({
   name: "BillingSpecialist",
-  instructions: "You handle billing, refund, and payment inquiries.",
+  instructions: "You specialize in payment, invoice, and refund issues.",
   model: "gpt-4.1-mini",
   provider
 });
 
-// 2. Router Agent
+const techSupportAgent = new Agent({
+  name: "TechSupportSpecialist",
+  instructions: "You specialize in bug reports, API errors, and server issues.",
+  model: "gpt-4.1-mini",
+  provider
+});
+
+// 2. Define Primary Router Agent
 const routerAgent = new Agent({
   name: "TriageRouter",
-  instructions: "Route payment or refund queries to the BillingSpecialist.",
+  instructions: `
+    You are a triage router. 
+    Analyze the user's issue and delegate to the appropriate specialist:
+    - Delegate billing, invoice, or refund questions to BillingSpecialist.
+    - Delegate API errors or technical issues to TechSupportSpecialist.
+  `,
   model: "gpt-4.1-mini",
   provider,
-  handoffs: [handoff(billingAgent)]
+  handoffs: [
+    handoff(billingAgent, { description: "Delegate billing and refund inquiries." }),
+    handoff(techSupportAgent, { description: "Delegate technical issues and bug reports." })
+  ]
 });
 
-// 3. Execute
+// 3. Execute Run
 const runner = new Runner({ maxHandoffs: 5 });
 const result = await runner.run(routerAgent, {
-  input: "I need a refund for my last invoice."
+  input: "My credit card was charged twice for invoice #4400."
 });
 
+console.log("Initial Agent:", result.agentName); // "TriageRouter"
 console.log("Final Agent:", result.finalAgentName); // "BillingSpecialist"
+console.log("Handoff Count:", result.handoffs); // 1
 console.log("Response:", result.output);
 ```
 
 ---
 
-Inspect execution data in [Tracing](./tracing.mdx).
+## Loop Prevention & Delegation Limits
+
+EzAgent built-in safeguards protect against recursion bugs:
+
+- **Visited Agent Tracking**: If an agent attempts to hand off to an agent name that has already been visited in the current run path, `Runner` throws a `HandoffError` cycle warning.
+- **`maxHandoffs` Limit**: If total delegations exceed `maxHandoffs` (default: 5), execution stops immediately with a `HandoffError`.
+
+---
+
+Next: Inspect execution metrics in [Tracing & Telemetry](./tracing).

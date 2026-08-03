@@ -1,39 +1,55 @@
-# Plugins
+# Agent Plugins
 
-Plugins bundle reusable middleware hooks so you can attach functionality (like logging or auditing) directly to an Agent.
+Plugins provide a clean way to package reusable middleware hooks and attach them directly to an `Agent`.
+
+---
 
 ## Defining a Plugin
 
-Use the `plugin()` function to package middleware hooks:
+Use the `plugin()` factory function:
 
 ```typescript
 import { middleware, plugin } from "ezagent";
 
-export const loggerPlugin = plugin({
-  name: "logger_plugin",
+// Create an audit logging plugin
+export const auditLoggingPlugin = plugin({
+  name: "audit_logger",
   middleware: [
     middleware({
-      name: "run_logger",
-      before: ({ runId }) => console.log(`Starting run: ${runId}`),
-      after: ({ runId, durationMs }) => console.log(`Run ${runId} finished in ${durationMs}ms`)
+      name: "run_audit",
+      before: ({ runId, agent }) => {
+        console.log(`[AUDIT] Starting run ${runId} for agent ${agent.name}`);
+      },
+      after: ({ runId, durationMs }) => {
+        console.log(`[AUDIT] Completed run ${runId} in ${durationMs}ms`);
+      },
+      onError: ({ runId, error }) => {
+        console.error(`[AUDIT] Failed run ${runId}: ${error.message}`);
+      }
     })
   ]
 });
 ```
 
-## Attaching a Plugin to an Agent
+---
 
-Use `.use()` on an Agent instance:
+## Attaching Plugins to an Agent (`.use()`)
+
+Attach plugins using the immutable `.use()` method on `Agent`:
 
 ```typescript
+import { Agent, OpenAIProvider } from "ezagent";
+
 const agent = new Agent({
-  name: "PluggedAgent",
-  instructions: "Do work.",
+  name: "PluginAgent",
+  instructions: "Process incoming requests.",
   model: "gpt-4.1-mini",
-  provider
-}).use(loggerPlugin);
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+}).use(auditLoggingPlugin);
+
+// agent now carries auditLoggingPlugin's middleware automatically!
 ```
 
 ---
 
-Learn more about lifecycle hooks in [Middleware](./middleware.mdx).
+Next: Learn about runner lifecycle hooks in [Lifecycle Middleware](./middleware).

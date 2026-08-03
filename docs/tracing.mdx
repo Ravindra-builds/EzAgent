@@ -1,30 +1,70 @@
 # Tracing & Telemetry
 
-EzAgent captures detailed, immutable `RunTrace` records for every run. Traces record all LLM calls, tool executions, retries, guardrails, and handoffs with exact timestamps and durations.
+EzAgent tracks detailed execution telemetry for every run via `RunTrace`. Traces record timing, tokens, provider HTTP calls, tool arguments, output repair attempts, guardrail checks, and middleware execution.
 
-## Accessing Traces
+---
 
-Traces are available directly on the result object or via `InMemoryTraceExporter`:
+## Accessing `RunTrace` on Results
+
+Every completed `RunResult` includes a full, immutable `trace` object:
 
 ```typescript
-import { Agent, InMemoryTraceExporter, OpenAIProvider, Runner } from "ezagent";
+const result = await runner.run(agent, { input: "Summarize this document" });
 
-const traceExporter = new InMemoryTraceExporter();
-const runner = new Runner({
-  generateRunId: () => "run_12345",
-  traceExporter
-});
-
-const result = await runner.run(agent, { input: "Hello" });
-
-// Access trace from result
-console.log(result.trace.durationMs);
-console.log(result.trace.providerCalls);
-
-// Access saved trace from exporter
-const savedTrace = traceExporter.get("run_12345");
+console.log("Run ID:", result.trace.runId);
+console.log("Total Duration:", result.trace.durationMs, "ms");
+console.log("Status:", result.trace.status); // "completed" | "failed"
+console.log("Provider Calls:", result.trace.providerCalls.length);
+console.log("Tool Calls:", result.trace.tools.length);
+console.log("Retries:", result.trace.retries.length);
 ```
 
 ---
 
-Extend agent behavior using [Plugins](./plugins.mdx).
+## `RunTrace` Schema Structure
+
+```typescript
+export interface RunTrace {
+  readonly runId: string;
+  readonly status: "completed" | "failed";
+  readonly initialAgentName: string;
+  readonly finalAgentName: string;
+  readonly startedAt: string;
+  readonly completedAt: string;
+  readonly durationMs: number;
+  readonly providerCalls: readonly ProviderTrace[];
+  readonly tools: readonly ToolTrace[];
+  readonly handoffs: readonly HandoffTrace[];
+  readonly guardrails: readonly GuardrailTrace[];
+  readonly retries: readonly RetryTrace[];
+  readonly middleware: readonly MiddlewareTrace[];
+  readonly error?: TraceError;
+}
+```
+
+---
+
+## Using `InMemoryTraceExporter`
+
+Collect and query execution traces across multiple runs:
+
+```typescript
+import { InMemoryTraceExporter, Runner } from "ezagent";
+
+const exporter = new InMemoryTraceExporter();
+const runner = new Runner({ traceExporter: exporter });
+
+await runner.run(agent, { input: "Query 1" });
+await runner.run(agent, { input: "Query 2" });
+
+// Retrieve trace by run ID
+const trace = exporter.get("run_id_here");
+
+// List all captured traces
+const allTraces = exporter.list();
+console.log(`Captured ${allTraces.length} execution traces.`);
+```
+
+---
+
+Next: Extend agent functionality with [Plugins](./plugins).

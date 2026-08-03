@@ -1,39 +1,53 @@
 # Lifecycle Middleware
 
-Middleware hooks let you run custom logic before or after a run, or capture errors when a run fails.
+Middleware hooks allow developers to intercept execution before a run begins, after a run finishes, or when a run throws an error.
 
-## Creating Middleware
+---
 
-Use the `middleware()` helper function:
+## Defining Runner Middleware
+
+Use the `middleware()` function:
 
 ```typescript
 import { middleware, Runner } from "ezagent";
 
-const auditMiddleware = middleware({
-  name: "audit_logger",
-  before: async (context) => {
-    console.log(`[START] Run ID: ${context.runId} for Agent: ${context.agent.name}`);
+const timingMiddleware = middleware({
+  name: "performance_timer",
+  before: async ({ runId, agent }) => {
+    console.log(`[Timer] Starting run ${runId} (${agent.name})`);
   },
-  after: async (context) => {
-    console.log(`[COMPLETE] Run ID: ${context.runId} in ${context.durationMs}ms`);
+  after: async ({ runId, durationMs }) => {
+    console.log(`[Timer] Run ${runId} finished in ${durationMs}ms`);
   },
-  onError: async (context) => {
-    console.error(`[ERROR] Run ID: ${context.runId} failed: ${context.error.message}`);
+  onError: async ({ runId, error }) => {
+    console.error(`[Timer] Run ${runId} encountered error: ${error.message}`);
   }
 });
 
-// Pass to Runner
+// Register middleware with Runner
 const runner = new Runner({
-  middleware: [auditMiddleware]
+  middleware: [timingMiddleware]
 });
 ```
 
-## Hook Context Properties
+---
 
-- **`before`**: `{ runId, agent, mode, signal }`
-- **`after`**: `{ runId, agent, mode, result, durationMs }`
-- **`onError`**: `{ runId, agent, mode, error, durationMs }`
+## Execution Order
+
+- **`before` Hooks**: Executed in **declaration order** (forward) BEFORE input guardrails or LLM calls.
+- **`after` Hooks**: Executed in **reverse declaration order** (onion model) AFTER the run completes successfully.
+- **`onError` Hooks**: Executed in **reverse declaration order** if an error occurs. Failures inside `onError` hooks are safely isolated so they never mask the primary run error.
 
 ---
 
-Got questions? Read the [FAQ](./faq.mdx).
+## Context Parameters
+
+| Hook      | Parameter Context                            |
+| --------- | -------------------------------------------- |
+| `before`  | `{ runId, agent, mode, signal }`             |
+| `after`   | `{ runId, agent, mode, result, durationMs }` |
+| `onError` | `{ runId, agent, mode, error, durationMs }`  |
+
+---
+
+Next: Read common questions in [Frequently Asked Questions](./faq).

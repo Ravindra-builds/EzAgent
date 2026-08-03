@@ -1,46 +1,113 @@
-# Runtime Engine
+# Runtime Engine (`Runner`)
 
-The `Runner` is the execution engine of EzAgent. It runs a bounded loop that connects the Agent, Provider, Tools, and Storage.
+The `Runner` class is the core execution engine of EzAgent. It owns state management, session loading/saving, tool execution, safety evaluation, retry loops, and telemetry tracing.
 
-## How the Loop Works
+---
 
-1. **Input Guardrails**: Evaluates safety rules on the user input.
-2. **Provider Request**: Sends messages to the model via the configured provider adapter.
-3. **Tool Calls / Handoffs**: If the model requests a tool call or handoff, `Runner` executes it safely.
-4. **Output Guardrails**: Verifies model response before returning it.
-5. **Return Result**: Returns a `RunResult` containing the final output, full transcript, trace log, and usage stats.
+## Runner Execution Lifecycle
 
-## Configuring Runner Limits
+Each call to `runner.run(agent, options)` runs through a bounded execution loop:
 
-Prevent runaway loops or unexpected API bills by setting explicit limits:
+```text
+1. Initialize Run Context & Trace Collector
+   │
+2. Execute Middleware 'before' Hooks
+   │
+3. Evaluate Input Guardrails (reject if blocked)
+   │
+4. Load Session Transcript (if sessionId provided)
+   │
+5. Retrieve Long-Term Memory (if memory query configured)
+   │
+6. Execute LLM Provider Chat/Stream Turn
+   ├── If Model requests Tool Call → Run Tool & loop back to Step 6
+   ├── If Model requests Handoff → Switch Agent & loop back to Step 6
+   └── If Model returns Response → Proceed to Step 7
+   │
+7. Validate Structured Output (repair & retry if schema validation fails)
+   │
+8. Evaluate Output Guardrails
+   │
+9. Save Session Transcript & Execute Middleware 'after' Hooks
+   │
+10. Return RunResult
+```
+
+---
+
+## Bounded Execution Limits
+
+To prevent runaway infinite loops, unconstrained tool executions, or unexpected API costs, `Runner` enforces configurable execution boundaries:
 
 ```typescript
 import { Runner } from "ezagent";
 
 const runner = new Runner({
-  maxIterations: 10, // Max LLM turn loops (default: 10)
+  maxIterations: 10, // Max LLM turn iterations per run (default: 10)
   maxToolCalls: 25, // Max total tool calls per run (default: 25)
   maxHandoffs: 5, // Max agent delegations (default: 5)
-  timeoutMs: 60_000 // Overall deadline in milliseconds (default: 120,000)
+  maxOutputRetries: 3, // Max structured output repair retries (default: 3)
+  timeoutMs: 120_000, // Total run deadline in milliseconds (default: 120,000)
+  retry: {
+    maxAttempts: 3, // Max attempts for retryable provider errors (default: 3)
+    initialDelayMs: 500, // Exponential backoff initial delay (default: 500ms)
+    maxDelayMs: 10_000 // Backoff max delay cap (default: 10,000ms)
+  }
 });
-```
-
-## Run Result Structure
-
-When you call `runner.run()`, it returns a `RunResult`:
-
-```typescript
-const result = await runner.run(agent, { input: "Hello" });
-
-console.log(result.output); // Final model response text or object
-console.log(result.agentName); // Starting agent name
-console.log(result.finalAgentName); // Agent active when run completed
-console.log(result.messages); // Immutable transcript history
-console.log(result.iterations); // Number of LLM iterations taken
-console.log(result.toolCalls); // Total tool executions
-console.log(result.trace); // Complete execution trace
 ```
 
 ---
 
-Learn how to expand your agent with custom actions in [Tools](./tools.mdx).
+## Cancellation & Deadlines
+
+Pass an `AbortSignal` to cancel a running execution gracefully:
+
+```typescript
+const controller = new AbortController();
+
+// Cancel run after 5 seconds if not completed
+setTimeout(() => controller.abort(new Error("Operation cancelled by user")), 5000);
+
+try {
+  const result = await runner.run(agent, {
+    input: "Analyze this large dataset...",
+    signal: controller.signal
+  });
+} catch (error) {
+  if (error instanceof Error && error.message.includes("cancelled")) {
+    console.log("Run was safely aborted.");
+  }
+}
+```
+
+---
+
+## Event Bus Subscriptions
+
+`Runner` emits typed runtime events that allow you to monitor progress in real time:
+
+```typescript
+runner.on("run:start", ({ runId, agentName }) => {
+  console.log(`[${runId}] Started run for ${agentName}`);
+});
+
+runner.on("model:start", ({ model, iteration }) => {
+  console.log(`[Turn ${iteration}] Calling model ${model}`);
+});
+
+runner.on("tool:start", ({ toolName, toolCallId }) => {
+  console.log(`Executing tool: ${toolName} (${toolCallId})`);
+});
+
+runner.on("completed", ({ runId, durationMs }) => {
+  console.log(`[${runId}] Completed in ${durationMs}ms`);
+});
+
+runner.on("failed", ({ runId, error }) => {
+  console.error(`[${runId}] Failed: ${error.message}`);
+});
+```
+
+---
+
+Next: Learn how to connect custom capabilities in [Defining Tools](./tools).

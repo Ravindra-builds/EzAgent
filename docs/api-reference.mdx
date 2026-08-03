@@ -1,43 +1,79 @@
 # API Reference
 
-A quick reference guide for main exports, classes, and error codes in EzAgent.
+Complete exported classes, factory functions, types, and error codes in `ezagent`.
 
-## Core Classes
+---
 
-| Class                   | Description                                                          |
-| ----------------------- | -------------------------------------------------------------------- |
-| `Agent`                 | Immutable agent configuration container.                             |
-| `Runner`                | Execution engine for agents with limits, tools, retries, and traces. |
-| `OpenAIProvider`        | Provider adapter for OpenAI models.                                  |
-| `GeminiProvider`        | Provider adapter for Google Gemini models.                           |
-| `InMemoryStorage`       | In-memory session transcript storage.                                |
-| `FileStorage`           | Disk-based atomic JSON session storage.                              |
-| `InMemoryMemory`        | Lexical factual long-term memory store.                              |
-| `InMemoryTraceExporter` | In-memory collector for execution traces.                            |
+## Core Exports
 
-## Utility Functions
+### `Agent`
 
-| Function                        | Description                                              |
-| ------------------------------- | -------------------------------------------------------- |
-| `tool(config)`                  | Creates a Zod-validated tool instance.                   |
-| `handoff(targetAgent, config?)` | Creates a model-visible delegation tool.                 |
-| `guardrail(config)`             | Creates a named guardrail definition.                    |
-| `middleware(config)`            | Creates a runner lifecycle middleware hook object.       |
-| `plugin(config)`                | Packages multiple middleware hooks into an agent plugin. |
-| `allow`                         | Pre-built guardrail decision for allowing execution.     |
-| `block(reason, metadata?)`      | Creates a blocking guardrail decision.                   |
+```typescript
+class Agent<TOutput = unknown> {
+  constructor(config: AgentConfig<TOutput>);
+  readonly name: string;
+  readonly instructions: string;
+  readonly model: string;
+  readonly provider: Provider;
+  readonly tools: readonly Tool[];
+  readonly guardrails: AgentGuardrails;
+  readonly handoffs: readonly Handoff[];
 
-## Error Classes
+  withTools(tools: readonly Tool[]): Agent<TOutput>;
+  withHandoffs(handoffs: readonly Handoff[]): Agent<TOutput>;
+  use(plugin: AgentPlugin): Agent<TOutput>;
+}
+```
 
-All EzAgent errors inherit from `EzAgentError`:
+### `Runner`
 
-- `AgentError` - Execution limit exceeded or invalid configuration
-- `ProviderError` - Provider network or response decoding failure
-- `ProviderConfigurationError` - Invalid provider credentials or options
-- `ToolError` - Tool execution failure or argument schema validation error
-- `GuardrailError` - Guardrail rejection
-- `HandoffError` - Invalid or circular handoff delegation
-- `TimeoutError` - Run deadline exceeded
-- `ValidationError` - Schema or type validation failure
-- `StorageError` - Session persistence error
-- `MemoryError` - Memory adapter operation error
+```typescript
+class Runner {
+  constructor(config?: RunnerConfig);
+  run<TContext, TOutput>(
+    agent: Agent<TOutput>,
+    options: RunOptions<TContext>
+  ): Promise<RunResult<TOutput>>;
+
+  stream<TContext, TOutput>(
+    agent: Agent<TOutput>,
+    options: RunOptions<TContext>
+  ): AsyncIterable<RunStreamEvent<TOutput>>;
+
+  on<K extends keyof RunnerEventMap>(
+    event: K,
+    listener: (event: RunnerEventMap[K]) => void
+  ): () => void;
+}
+```
+
+---
+
+## Factory Functions
+
+- `tool(config)`: Constructs a Zod-validated `Tool`.
+- `handoff(targetAgent, config?)`: Constructs a model-visible `Handoff` delegation tool.
+- `guardrail(config)`: Constructs a named `Guardrail`.
+- `middleware(config)`: Constructs a `RunnerMiddleware` hook object.
+- `plugin(config)`: Constructs an `AgentPlugin`.
+- `allow`: Pre-built `GuardrailDecision` allowing execution.
+- `block(reason, metadata?)`: Constructs a blocking `GuardrailDecision`.
+
+---
+
+## Error Classes Hierarchy
+
+All SDK exceptions inherit from `EzAgentError`:
+
+| Error Class                  | Code                           | Description                                         |
+| ---------------------------- | ------------------------------ | --------------------------------------------------- |
+| `AgentError`                 | `AGENT_ERROR`                  | Bounded limit exceeded or invalid configuration.    |
+| `ProviderError`              | `PROVIDER_ERROR`               | LLM HTTP network or response decoding failure.      |
+| `ProviderConfigurationError` | `PROVIDER_CONFIGURATION_ERROR` | Missing or invalid API key / base URL credentials.  |
+| `ToolError`                  | `TOOL_ERROR`                   | Tool execution exception or schema violation.       |
+| `GuardrailError`             | `GUARDRAIL_ERROR`              | Guardrail blocked operation.                        |
+| `HandoffError`               | `HANDOFF_ERROR`                | Circular or exhausted multi-agent handoff.          |
+| `TimeoutError`               | `TIMEOUT_ERROR`                | Run deadline exceeded.                              |
+| `ValidationError`            | `VALIDATION_ERROR`             | Input, output, or metadata schema validation error. |
+| `StorageError`               | `STORAGE_ERROR`                | Session storage persistence failure.                |
+| `MemoryError`                | `MEMORY_ERROR`                 | Factual memory adapter retrieval failure.           |

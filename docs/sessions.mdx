@@ -1,47 +1,85 @@
 # Sessions & Conversation History
 
-Sessions store transcript history across multiple runner calls, enabling multi-turn conversations.
+Sessions manage multi-turn conversation transcripts across multiple runner invocations.
 
-## Using Sessions with Storage
+---
 
-Pass a `storage` adapter to `Runner` and specify a `sessionId` in `run()`:
+## How Sessions Work
+
+1. When you pass `sessionId: "session-123"` to `runner.run()`, `Runner` loads the existing transcript from the configured `storage` adapter.
+2. `Runner` appends the new user input message to the loaded transcript.
+3. `Runner` executes the agent using the full transcript history.
+4. `Runner` appends model responses and tool results to the transcript.
+5. `Runner` saves the updated transcript back to `storage`.
+
+---
+
+## Session Usage Example
 
 ```typescript
 import { Agent, InMemoryStorage, OpenAIProvider, Runner } from "ezagent";
 
+// 1. Create a storage adapter
 const storage = new InMemoryStorage();
+
+// 2. Initialize Runner with storage
 const runner = new Runner({ storage });
 
 const agent = new Agent({
-  name: "ChatBot",
-  instructions: "You remember user details across turns.",
+  name: "SupportAgent",
+  instructions: "You are a customer support agent. Help the user step by step.",
   model: "gpt-4.1-mini",
   provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
 });
 
-// Turn 1
+// Turn 1: User introduces themselves
 await runner.run(agent, {
-  input: "Hi, my name is Alex.",
-  sessionId: "user-session-123"
+  input: "Hi! My order ID is #98765.",
+  sessionId: "customer-session-1"
 });
 
-// Turn 2
+// Turn 2: User asks a follow-up question
 const reply = await runner.run(agent, {
-  input: "What is my name?",
-  sessionId: "user-session-123"
+  input: "Can you check the status of my order?",
+  sessionId: "customer-session-1"
 });
 
-console.log(reply.output); // "Your name is Alex."
-```
-
-## Clearing Sessions
-
-You can delete a session transcript from storage at any time:
-
-```typescript
-await storage.deleteSession("user-session-123");
+console.log(reply.output); // Model references order ID #98765 from Turn 1!
 ```
 
 ---
 
-Check out [Memory](./memory.mdx) for storing key facts outside transcripts.
+## Storing Metadata with Sessions
+
+Attach custom key-value metadata (e.g. `userId`, `tenantId`) when creating a session:
+
+```typescript
+await runner.run(agent, {
+  input: "Hello",
+  sessionId: "session-abc",
+  sessionMetadata: {
+    userId: "usr_1001",
+    channel: "web-chat"
+  }
+});
+```
+
+---
+
+## Managing Session History
+
+Inspect or delete sessions directly using your storage adapter instance:
+
+```typescript
+// Load a session manually
+const session = await storage.loadSession("customer-session-1");
+console.log("Message count:", session?.messages.length);
+console.log("Session Metadata:", session?.metadata);
+
+// Delete a session when user logs out
+await storage.deleteSession("customer-session-1");
+```
+
+---
+
+Next: Learn about retrieving factual context in [Long-Term Factual Memory](./memory).

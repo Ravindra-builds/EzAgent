@@ -1,12 +1,12 @@
 # Storage Adapters
 
-Storage adapters persist session history to disk, memory, or external databases.
+Storage adapters persist session history to disk, memory, or databases.
 
-## Built-In Adapters
+---
 
-### 1. InMemoryStorage
+## 1. `InMemoryStorage`
 
-Fast, non-persistent storage for testing and quick local development:
+Fast, zero-setup storage that holds sessions in memory. Ideal for testing, unit tests, and quick prototyping.
 
 ```typescript
 import { InMemoryStorage, Runner } from "ezagent";
@@ -15,44 +15,59 @@ const storage = new InMemoryStorage();
 const runner = new Runner({ storage });
 ```
 
-### 2. FileStorage
+---
 
-Persists session transcripts as JSON files on disk:
+## 2. `FileStorage`
+
+Persists session transcripts as JSON files on disk. Uses atomic file writes to prevent corrupted files.
 
 ```typescript
 import { FileStorage, Runner } from "ezagent";
 
 const storage = new FileStorage({
-  directory: "./.ezagent/sessions"
+  directory: "./.ezagent/sessions" // Path where session files will be saved
 });
 
 const runner = new Runner({ storage });
 ```
 
-## Creating Custom Storage Adapters
+---
 
-Implement the `StorageAdapter` interface for Redis, PostgreSQL, MongoDB, etc.:
+## 3. Implementing a Custom Storage Adapter
+
+Implement the `StorageAdapter` interface to store session transcripts in Redis, PostgreSQL, MongoDB, or DynamoDB:
 
 ```typescript
 import type { Session, StorageAdapter } from "ezagent";
 
-export class RedisStorage implements StorageAdapter {
+export class RedisStorageAdapter implements StorageAdapter {
+  constructor(private readonly redisClient: any) {}
+
   async loadSession(sessionId: string): Promise<Session | null> {
-    // Fetch from Redis
-    return null;
+    const data = await this.redisClient.get(`session:${sessionId}`);
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+    return {
+      sessionId: parsed.sessionId,
+      messages: parsed.messages,
+      createdAt: parsed.createdAt,
+      updatedAt: parsed.updatedAt,
+      metadata: parsed.metadata
+    };
   }
 
   async saveSession(session: Session): Promise<void> {
-    // Save to Redis
+    await this.redisClient.set(`session:${session.sessionId}`, JSON.stringify(session));
   }
 
   async deleteSession(sessionId: string): Promise<boolean> {
-    // Delete from Redis
-    return true;
+    const count = await this.redisClient.del(`session:${sessionId}`);
+    return count > 0;
   }
 }
 ```
 
 ---
 
-Learn how to stream responses in [Streaming](./streaming.mdx).
+Next: Learn about real-time streaming responses in [Real-Time Streaming](./streaming).

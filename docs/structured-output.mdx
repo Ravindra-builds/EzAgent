@@ -1,41 +1,71 @@
 # Structured Output & Automatic Repair
 
-Need your model to return valid JSON matching a specific TypeScript type? Define an `output` schema using Zod.
+When building workflows, background tasks, or API integrations, you often need the LLM to return a validated JSON object matching a specific TypeScript type rather than freeform prose text.
 
-## Defining Output Schema
+EzAgent handles JSON schema generation, output parsing, and **automatic repair retries** seamlessly.
+
+---
+
+## Defining a Structured Output Schema
+
+Pass a Zod schema to the `output` configuration property of an `Agent`:
 
 ```typescript
 import { Agent, OpenAIProvider, Runner } from "ezagent";
 import { z } from "zod";
 
-const UserProfileSchema = z.object({
-  name: z.string(),
-  age: z.number(),
-  hobbies: z.array(z.string())
+// 1. Define the target TypeScript type using Zod
+const InvoiceSchema = z.object({
+  invoiceNumber: z.string(),
+  customerName: z.string(),
+  totalAmountUSD: z.number().positive(),
+  lineItems: z.array(
+    z.object({
+      description: z.string(),
+      quantity: z.number().int().positive(),
+      unitPrice: z.number().positive()
+    })
+  )
 });
 
+// 2. Pass schema to Agent output
 const agent = new Agent({
-  name: "Extractor",
-  instructions: "Extract structured user information from input text.",
+  name: "InvoiceExtractor",
+  instructions: "Extract invoice details from unstructured receipt text.",
   model: "gpt-4.1-mini",
   provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
-  output: UserProfileSchema
+  output: InvoiceSchema
 });
 
+// 3. Run Agent
 const runner = new Runner({ maxOutputRetries: 3 });
 const result = await runner.run(agent, {
-  input: "My name is Sarah, I am 28 years old and I enjoy hiking and photography."
+  input: "Receipt #INV-9021 for John Doe. Purchased 2 Laptops at $1200 each. Total: $2400."
 });
 
-// result.output is fully typed as { name: string; age: number; hobbies: string[] }
-console.log(result.output.name); // "Sarah"
-console.log(result.output.hobbies); // ["hiking", "photography"]
+// result.output is fully typed!
+console.log("Invoice #:", result.output.invoiceNumber); // "INV-9021"
+console.log("Customer:", result.output.customerName); // "John Doe"
+console.log("Total:", result.output.totalAmountUSD); // 2400
 ```
-
-## Automatic Repair Retries
-
-If the model outputs malformed JSON or misses a field required by your Zod schema, EzAgent automatically prompts the model to correct its mistake (up to `maxOutputRetries`).
 
 ---
 
-Ensure safety and compliance in [Guardrails](./guardrails.mdx).
+## Automatic Repair Retries
+
+If the model outputs malformed JSON or omits required fields:
+
+1. `Runner` catches the Zod validation issues.
+2. `Runner` constructs a bounded repair prompt explaining the exact schema violations.
+3. `Runner` sends the repair prompt back to the model.
+4. `Runner` repeats up to `maxOutputRetries` times before surfacing a `ValidationError`.
+
+```typescript
+const runner = new Runner({
+  maxOutputRetries: 3 // Retries up to 3 times to fix invalid schema outputs
+});
+```
+
+---
+
+Next: Protect your application using [Guardrails](./guardrails).

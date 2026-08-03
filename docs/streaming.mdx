@@ -1,41 +1,89 @@
 # Real-Time Streaming
 
-EzAgent supports real-time streaming of tokens, tool calls, and completion events using standard `for await...of` async loops.
+EzAgent provides native, event-driven streaming through `Runner.stream()`. Using standard JavaScript `for await...of` async iterators, you can stream LLM response tokens, tool call executions, and final results to your user interface.
 
-## Basic Token Streaming Example
+---
+
+## Streaming Example
 
 ```typescript
-import { Agent, OpenAIProvider, Runner } from "ezagent";
+import { Agent, OpenAIProvider, Runner, tool } from "ezagent";
+import { z } from "zod";
+
+const searchTool = tool({
+  name: "search",
+  description: "Search knowledge base.",
+  schema: z.object({ query: z.string() }),
+  execute: async ({ query }) => ({ results: [`Result for ${query}`] })
+});
 
 const agent = new Agent({
-  name: "Streamer",
-  instructions: "Write a poem about space exploration.",
+  name: "StreamAgent",
+  instructions: "Answer questions using search when needed.",
   model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  tools: [searchTool]
 });
 
 const runner = new Runner();
 
-for await (const event of runner.stream(agent, {
-  input: "Write a short poem."
-})) {
-  if (event.type === "token") {
-    process.stdout.write(event.delta);
-  } else if (event.type === "tool:start") {
-    console.log(`\n[Running tool: ${event.toolName}]`);
-  } else if (event.type === "result") {
-    console.log("\nDone! Full output:", event.result.output);
+// Call runner.stream instead of runner.run
+for await (const event of runner.stream(agent, { input: "Search for TypeScript tips" })) {
+  switch (event.type) {
+    case "token":
+      // Yield text delta directly to client response
+      process.stdout.write(event.delta);
+      break;
+
+    case "tool:start":
+      console.log(`\n[Executing tool ${event.toolName}...]`);
+      break;
+
+    case "tool:end":
+      console.log(`[Tool ${event.toolName} finished]`);
+      break;
+
+    case "result":
+      console.log("\n[Stream Completed]");
+      console.log("Total Tokens:", event.result.usage?.totalTokens);
+      break;
   }
 }
 ```
 
-## Stream Event Types
+---
 
-- `token`: Delta string received from LLM
-- `tool:start`: Tool invocation started
-- `tool:end`: Tool execution completed
-- `result`: Final completed `RunResult` object
+## Event Types Reference
+
+| Event Type   | Properties                                                     | Description                            |
+| ------------ | -------------------------------------------------------------- | -------------------------------------- |
+| `token`      | `{ type: "token", delta: string }`                             | Text chunk received from model stream. |
+| `tool:start` | `{ type: "tool:start", toolName: string, toolCallId: string }` | Tool execution initiated.              |
+| `tool:end`   | `{ type: "tool:end", toolName: string, output: string }`       | Tool execution completed.              |
+| `result`     | `{ type: "result", result: RunResult }`                        | Final completed run result object.     |
 
 ---
 
-Next: Extract type-safe JSON objects in [Structured Output](./structured-output.mdx).
+## Aborting a Stream
+
+Pass an `AbortSignal` to cancel streaming early (e.g. user navigated away):
+
+```typescript
+const controller = new AbortController();
+
+for await (const event of runner.stream(agent, {
+  input: "Long question...",
+  signal: controller.signal
+})) {
+  if (event.type === "token") {
+    console.log(event.delta);
+    if (userClickedStop) {
+      controller.abort();
+    }
+  }
+}
+```
+
+---
+
+Next: Extract type-safe JSON objects in [Structured Output & Auto-Repair](./structured-output).

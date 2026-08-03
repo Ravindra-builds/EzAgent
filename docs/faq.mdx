@@ -1,29 +1,37 @@
-# Frequently Asked Questions & Limitations
+# Frequently Asked Questions
 
-Here are common questions and design decisions behind EzAgent.
-
-## Frequently Asked Questions
-
-### 1. Does EzAgent wrap LangChain or AutoGen?
-
-No. EzAgent is a lightweight, zero-dependency orchestration runtime built natively in TypeScript.
-
-### 2. Can I use custom LLM models like local Llama or Ollama?
-
-Yes! Simply implement the `Provider` interface (`chat()` and `stream()` methods) and pass your custom provider instance to the Agent.
-
-### 3. How does retry logic work?
-
-EzAgent automatically retries non-streaming network or rate-limit errors (HTTP 429, 5xx) with exponential backoff. Streaming responses are not retried mid-stream to avoid duplicating tokens for the consumer.
-
-### 4. Is `FileStorage` safe for multi-process applications?
-
-`FileStorage` uses atomic file replacement suitable for single-node / single-process environments. For distributed multi-process infrastructure, implement a custom `StorageAdapter` backed by Redis or PostgreSQL.
-
-### 5. How are handoffs protected against infinite loops?
-
-EzAgent tracks visited agent names in the run state and enforces a configurable `maxHandoffs` cap (default: 5). If a handoff cycle or excessive delegation occurs, a `HandoffError` is thrown immediately.
+Common questions, architecture choices, and design rationale behind EzAgent.
 
 ---
 
-Need API details? See the [API Reference](./api-reference.mdx).
+### 1. Does EzAgent wrap external frameworks like LangChain or AutoGen?
+
+**No.** EzAgent is a clean, zero-dependency, provider-neutral TypeScript SDK built natively from the ground up. It gives you full visibility into execution logic without hidden magic.
+
+---
+
+### 2. Can I use custom or local LLM models (e.g. Anthropic, Ollama)?
+
+**Yes!** Implement the `Provider` interface (`chat()` and `stream()` methods) and pass your custom provider instance to `Agent`.
+
+---
+
+### 3. How does retry logic work?
+
+EzAgent automatically retries transient, non-streaming network and rate-limit errors (HTTP 429, 500, 502, 503, 504) using exponential backoff with jitter. Visible text streams are not retried mid-stream to prevent output token duplication.
+
+---
+
+### 4. Is `FileStorage` safe for production multi-process apps?
+
+`FileStorage` uses atomic file replacement suitable for single-node / single-process services. For distributed multi-instance infrastructure, implement a custom `StorageAdapter` backed by Redis, PostgreSQL, or MongoDB.
+
+---
+
+### 5. How are multi-agent handoff loops prevented?
+
+EzAgent maintains a `visitedAgents` registry for each run and enforces a `maxHandoffs` cap (default: 5). If a cycle or excessive delegation is detected, `Runner` throws a `HandoffError`.
+
+---
+
+Next: Check out the full [API Reference](./api-reference).

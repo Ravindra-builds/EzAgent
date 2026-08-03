@@ -1,39 +1,79 @@
 # Creating Your First Agent
 
-An `Agent` in EzAgent is an immutable configuration object. It stores instructions, the model provider, registered tools, and settings.
-
-## Basic Example
-
-```typescript
-import { Agent, OpenAIProvider, Runner } from "ezagent";
-
-const agent = new Agent({
-  name: "Greeter",
-  instructions: "Greet the user politely in plain English.",
-  model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
-});
-
-const runner = new Runner();
-const result = await runner.run(agent, {
-  input: "Hello!"
-});
-
-console.log("Response:", result.output);
-```
-
-## Agent Configuration Options
-
-| Option         | Type                 | Required | Description                                         |
-| -------------- | -------------------- | -------- | --------------------------------------------------- |
-| `name`         | `string`             | Yes      | Name of the agent for logs and traces.              |
-| `instructions` | `string`             | Yes      | System prompt giving directions to the model.       |
-| `provider`     | `Provider`           | Yes      | LLM adapter instance (OpenAI, Gemini, etc.).        |
-| `model`        | `string`             | Yes      | Model ID (e.g. `gpt-4.1-mini`, `gemini-2.0-flash`). |
-| `tools`        | `readonly Tool[]`    | No       | List of tools the agent is allowed to execute.      |
-| `guardrails`   | `AgentGuardrails`    | No       | Safety checks for inputs, outputs, and tool calls.  |
-| `handoffs`     | `readonly Handoff[]` | No       | Other agents this agent can delegate to.            |
+In EzAgent, an `Agent` is an **immutable configuration container**. It defines _who_ the agent is, _what instructions_ it follows, _which provider and model_ it uses, and _what tools or safety rules_ it possesses.
 
 ---
 
-Next up: Learn how the execution loop works in [Runtime](./runtime.mdx).
+## Defining an Agent
+
+Use the `Agent` class constructor to build your configuration:
+
+```typescript
+import { Agent, OpenAIProvider } from "ezagent";
+
+const supportAgent = new Agent({
+  name: "CustomerSupportAgent",
+  instructions: `
+    You are a customer support agent for TechCorp.
+    Always be polite, helpful, and concise.
+    If you do not know the answer, state that clearly instead of guessing.
+  `,
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+});
+```
+
+---
+
+## Agent Configuration Options
+
+| Option         | Type                 | Required | Description                                                               |
+| -------------- | -------------------- | -------- | ------------------------------------------------------------------------- |
+| `name`         | `string`             | **Yes**  | Identifier for the agent used in traces, logs, and multi-agent handoffs.  |
+| `instructions` | `string`             | **Yes**  | The system prompt that guides model behavior.                             |
+| `provider`     | `Provider`           | **Yes**  | The LLM adapter instance (`OpenAIProvider`, `GeminiProvider`, or custom). |
+| `model`        | `string`             | **Yes**  | The target model identifier (e.g. `gpt-4.1-mini`, `gemini-2.0-flash`).    |
+| `tools`        | `readonly Tool[]`    | No       | Zod-validated tools the model is allowed to invoke.                       |
+| `guardrails`   | `AgentGuardrails`    | No       | Input, output, tool, and approval safety checks.                          |
+| `handoffs`     | `readonly Handoff[]` | No       | Target agents this agent can delegate requests to.                        |
+| `output`       | `ZodSchema`          | No       | Zod schema for enforcing structured JSON responses.                       |
+
+---
+
+## Agent Immutability & Immutability Helpers
+
+Because `Agent` instances are deeply frozen, modifying an agent creates a new immutable instance without mutating the original:
+
+```typescript
+// 1. Extend an agent with new tools
+const agentWithTools = supportAgent.withTools([searchTool]);
+
+// 2. Extend an agent with multi-agent handoffs
+const agentWithHandoffs = supportAgent.withHandoffs([handoff(billingAgent)]);
+
+// 3. Attach plugins to an agent
+const agentWithPlugins = supportAgent.use(loggingPlugin);
+
+// The original supportAgent remains untouched!
+```
+
+---
+
+## Running the Agent
+
+To execute an agent, pass it to `Runner.run()`:
+
+```typescript
+import { Runner } from "ezagent";
+
+const runner = new Runner();
+const result = await runner.run(supportAgent, {
+  input: "What are your business hours?"
+});
+
+console.log(result.output);
+```
+
+---
+
+Next: Learn about execution limits, cancellation, and event hooks in [Runtime Engine](./runtime).

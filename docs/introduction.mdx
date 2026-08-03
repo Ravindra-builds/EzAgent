@@ -1,26 +1,36 @@
 # Introduction to EzAgent
 
-**EzAgent** is a lightweight TypeScript SDK for building AI agents. Unlike complex frameworks that hide what is happening under the hood, EzAgent gives you full control over how your agent runs, calls tools, handles errors, and remembers past conversations.
+**EzAgent** is a lightweight, provider-agnostic TypeScript SDK designed for building production-grade AI agents with **complete runtime transparency**.
 
-## Why EzAgent?
-
-- **Simple & Clear**: No complicated abstractions. You write standard TypeScript.
-- **Provider Agnostic**: Use OpenAI, Google Gemini, or bring your own custom LLM provider.
-- **Full Control**: Transparent event tracking, step limits, retries, and step-by-step trace inspection.
-- **Type-Safe**: Built with TypeScript and Zod for schema validation.
-- **Production Ready**: Built-in limits (max tool calls, max steps), automatic output repair, timeouts, and clean cancellation.
-
-## Key Concepts
-
-| Concept        | Description                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------- |
-| **Agent**      | Holds configuration like instructions, provider, tools, and guardrails.                     |
-| **Runner**     | Executes the agent in a loop, handling LLM responses, running tools, and returning results. |
-| **Tools**      | Functions your agent can run to fetch data or take actions.                                 |
-| **Providers**  | Connectors to LLMs (OpenAI, Gemini, etc.).                                                  |
-| **Sessions**   | Store conversation transcripts so agents remember past turns.                               |
-| **Guardrails** | Rules that inspect and approve/block inputs, outputs, and tool calls.                       |
+Unlike heavy agent frameworks that obscure model calls, tool execution, and state management behind complex abstractions, EzAgent gives developers direct visibility and control over every step of the agent execution lifecycle.
 
 ---
 
-Ready to get started? Check out the [Installation Guide](./installation.mdx) or jump straight to the [Quickstart](./quickstart.mdx)!
+## Key Highlights
+
+- 🪶 **Lightweight & Modular**: Small dependency footprint (only peer-depends on Zod). No forced platform or cloud lock-in.
+- 🔌 **Provider Agnostic**: Run the exact same Agent using OpenAI, Google Gemini, or your own custom LLM provider interface.
+- 🔍 **Transparent Runtime**: Complete inspection of transcripts, tool executions, retries, multi-agent handoffs, and step-by-step traces.
+- 🛡️ **Built-in Guardrails & Safety**: Inspect and approve or block user inputs, model outputs, tool calls, and human approvals.
+- 🔄 **Structured Output & Auto-Repair**: Define typed output schemas with Zod. EzAgent automatically repairs invalid JSON responses.
+- 📡 **Real-Time Streaming**: Stream text tokens, tool execution events, and results using standard `for await...of` async iterators.
+- 🤖 **Multi-Agent Handoffs**: Transfer execution between specialized agents with built-in loop detection and delegation limits.
+
+---
+
+## Architectural Invariants
+
+EzAgent is built on strict design invariants to guarantee predictability in production:
+
+1. **Agent is Immutable Configuration**: An `Agent` holds static metadata (name, instructions, provider, tools, guardrails). It contains zero execution state.
+2. **Runner Owns Execution**: The `Runner` class controls the execution loop, limits, session persistence, memory retrieval, retry policies, and tracing.
+3. **Bounded Execution**: Every run is strictly bounded by maximum iterations, tool calls, handoffs, output repair attempts, and total execution timeout.
+4. **Type-Safe Validation**: Tools and structured outputs rely on Zod for runtime schema validation.
+
+---
+
+## Next Steps
+
+- **[Installation Guide](./installation)** — Add EzAgent to your TypeScript project.
+- **[30-Second Quickstart](./quickstart)** — Run your first agent in under a minute.
+- **[Creating Your First Agent](./first-agent)** — Learn how to configure Agents, Providers, and Tools.

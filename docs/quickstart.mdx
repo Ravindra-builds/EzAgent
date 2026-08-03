@@ -1,42 +1,85 @@
 # 30-Second Quickstart
 
-Here is how to create and run your very first AI agent with EzAgent.
+Get up and running with a functional AI agent in 30 seconds.
 
-## Code Example
+---
 
-Create a file named `index.ts`:
+## 1. Minimal Working Example
+
+Create a file named `quickstart.ts`:
 
 ```typescript
 import { Agent, OpenAIProvider, Runner } from "ezagent";
 
-// 1. Define your agent
+// 1. Initialize the Provider
+const provider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!
+});
+
+// 2. Define the Agent configuration
 const agent = new Agent({
-  name: "HelperAgent",
-  instructions: "You are a friendly assistant. Keep your answers brief.",
+  name: "Assistant",
+  instructions: "You are a helpful, concise assistant. Answer questions in 1-2 sentences.",
   model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
+  provider
 });
 
-// 2. Create a Runner and execute
+// 3. Create the Runner instance
 const runner = new Runner();
+
+// 4. Run the Agent
 const result = await runner.run(agent, {
-  input: "What is EzAgent in one simple sentence?"
+  input: "What is an AI agent SDK?"
 });
 
-// 3. Print the result
-console.log(result.output);
+// 5. Output the result
+console.log("Agent Output:", result.output);
+console.log("Execution Time:", result.trace.durationMs, "ms");
 ```
 
-## Running the Interactive Playground
-
-EzAgent comes with a local interactive CLI playground for quick testing:
+Run the file using `tsx` or `ts-node`:
 
 ```bash
-# 1. Copy environment template
+npx tsx quickstart.ts
+```
+
+---
+
+## 2. Interactive Playground CLI
+
+EzAgent ships with an interactive local CLI playground for rapid experimentation:
+
+```bash
+# 1. Copy the environment template
 cp .env.example .env
 
-# 2. Run the playground
+# 2. Add your API key to .env
+# OPENAI_API_KEY=sk-...
+
+# 3. Launch the playground
 npm run playground
 ```
 
-Try typing messages directly in the terminal! Type `/trace` to see detailed execution logs or `/exit` to quit.
+### Interactive Playground Commands
+
+| Command  | Description                                                |
+| -------- | ---------------------------------------------------------- |
+| `/trace` | Display the complete JSON execution trace of the last run. |
+| `/reset` | Clear the active session transcript history.               |
+| `/exit`  | Exit the interactive playground.                           |
+
+---
+
+## What Happened Under the Hood?
+
+When you called `runner.run(agent, { input: "..." })`:
+
+1. `Runner` constructed the execution context and initialized a new run state.
+2. `Runner` formatted the prompt messages (`system` instructions + `user` input).
+3. `Runner` sent the request to `OpenAIProvider.chat()`.
+4. `OpenAIProvider` converted vendor response formats into standard EzAgent types.
+5. `Runner` stored trace metadata and returned a structured `RunResult`.
+
+---
+
+Next: Learn how to configure agents in [Creating Your First Agent](./first-agent).

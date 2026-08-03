@@ -1,38 +1,84 @@
-# Installation
+# Installation & Setup
 
-Installing EzAgent in your TypeScript project takes only a few seconds.
+EzAgent is published on npm as `ezagent`. It includes ESM, CommonJS, and TypeScript declaration bundles out of the box.
 
-## Requirements
+---
 
-- **Node.js**: Version 18 or newer
-- **TypeScript**: Version 5 or newer (recommended)
-- **Zod**: Version 3 or 4 (used for defining tools and structured outputs)
+## Prerequisites
 
-## Install via Package Manager
+- **Node.js**: Version 18.0.0 or higher.
+- **TypeScript**: Version 5.0 or higher (recommended).
+- **Zod**: Version 3.x or 4.x (required peer dependency for tool schemas and structured outputs).
 
-Choose your favorite package manager:
+---
 
-```bash
-# npm
+## Installing the SDK
+
+Install `ezagent` along with `zod` using your preferred package manager:
+
+<CodeGroup>
+```bash npm
 npm install ezagent zod
+```
 
-# pnpm
+```bash pnpm
 pnpm add ezagent zod
+```
 
-# bun
+```bash bun
 bun add ezagent zod
+```
 
-# yarn
+```bash yarn
 yarn add ezagent zod
 ```
 
-## Environment Setup
+</CodeGroup>
 
-Create a `.env` file in the root of your project to store your API keys:
+---
 
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
+## Environment Variables
+
+For local development or testing with real LLM providers, create a `.env` file at the root of your project:
+
+```dotenv
+# Select provider for the playground CLI (openai | gemini)
+EZAGENT_PROVIDER=openai
+
+# OpenAI Credentials
+OPENAI_API_KEY=sk-proj-...
+
+# Google Gemini Credentials
+GEMINI_API_KEY=AIzaSy...
 ```
 
-Next, check out the [Quickstart](./quickstart.mdx) to build your first agent!
+Make sure to install `dotenv` if your project loads environment variables via `import "dotenv/config"`:
+
+```bash
+npm install -D dotenv
+```
+
+---
+
+## Recommended `tsconfig.json`
+
+For optimal TypeScript performance and autocompletion, configure your `tsconfig.json` with modern Node module resolution:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+---
+
+## Verification
+
+Verify your installation by creating a minimal agent in [30-Second Quickstart](./quickstart).

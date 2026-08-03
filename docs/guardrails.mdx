@@ -1,49 +1,80 @@
-# Guardrails
+# Guardrails & Safety
 
-Guardrails allow you to inspect, approve, or block inputs, outputs, tool calls, and human approvals before execution continues.
+Guardrails enable developers to enforce safety rules, compliance filters, data privacy controls, and human approvals at key points in the agent lifecycle.
 
-## Defining Guardrails
+---
 
-Use `allow` or `block()` helpers to make decisions:
+## The 4 Guardrail Phases
+
+EzAgent supports four guardrail evaluation phases:
+
+1. **Input Guardrails** (`input`): Evaluated BEFORE sending the user prompt to the provider.
+2. **Output Guardrails** (`output`): Evaluated AFTER the model responds, BEFORE returning the final result.
+3. **Tool Guardrails** (`tool`): Evaluated BEFORE executing any requested tool.
+4. **Approval Guardrails** (`approval`): Evaluated BEFORE tool execution when human approval is required.
+
+---
+
+## Guardrail Decisions (`allow` & `block`)
+
+Guardrails return either `allow` or `block("reason", metadata)`:
 
 ```typescript
-import { Agent, allow, block, OpenAIProvider, Runner } from "ezagent";
-import type { InputGuardrail, OutputGuardrail } from "ezagent";
+import { Agent, allow, block, GuardrailError, OpenAIProvider, Runner } from "ezagent";
+import type { ApprovalGuardrail, InputGuardrail, OutputGuardrail } from "ezagent";
 
-// Input Guardrail: Block sensitive keywords
-const blockSecrets: InputGuardrail = {
-  name: "block_secrets",
+// Input Guardrail Example
+const preventPii: InputGuardrail = {
+  name: "prevent_pii",
   check: ({ input }) => {
-    if (typeof input === "string" && input.toLowerCase().includes("secret_password")) {
-      return block("Input contains prohibited secret text.");
+    if (typeof input === "string" && /\b\d{3}-\d{2}-\d{4}\b/.test(input)) {
+      return block("Input contains a Social Security Number.");
     }
     return allow;
   }
 };
 
-// Output Guardrail: Verify clean output
-const cleanOutput: OutputGuardrail = {
-  name: "clean_output",
-  check: ({ text }) => {
-    if (text.includes("CONFIDENTIAL")) {
-      return block("Output contained confidential tags.");
+// Approval Guardrail Example
+const requireFinancialApproval: ApprovalGuardrail = {
+  name: "require_financial_approval",
+  check: ({ toolCall, context }) => {
+    if (toolCall.name === "transfer_funds" && !context?.isHumanApproved) {
+      return block("Human approval required for wire transfers.");
     }
     return allow;
   }
 };
 
 const agent = new Agent({
-  name: "SecureAgent",
-  instructions: "Answer user queries safely.",
+  name: "FinanceAgent",
+  instructions: "Perform financial queries safely.",
   model: "gpt-4.1-mini",
   provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
   guardrails: {
-    input: [blockSecrets],
-    output: [cleanOutput]
+    input: [preventPii],
+    approval: [requireFinancialApproval]
   }
 });
 ```
 
 ---
 
-Delegate work across agents in [Handoffs](./handoffs.mdx).
+## Handling Guardrail Rejections
+
+When an **Input** or **Output** guardrail blocks execution, `Runner` throws a `GuardrailError`:
+
+```typescript
+try {
+  await runner.run(agent, { input: "My SSN is 000-12-3456" });
+} catch (error) {
+  if (error instanceof GuardrailError) {
+    console.error("Guardrail Blocked:", error.message);
+  }
+}
+```
+
+When an **Approval** or **Tool** guardrail blocks a tool execution, `Runner` converts the block into a tool error response and allows the model to inform the user gracefully.
+
+---
+
+Next: Delegate complex tasks in [Multi-Agent Handoffs](./handoffs).

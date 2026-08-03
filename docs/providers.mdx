@@ -1,61 +1,102 @@
-# Providers
+# LLM Providers
 
-Providers connect EzAgent to large language models. EzAgent includes first-party adapters for OpenAI and Google Gemini out of the box.
+Providers translate EzAgent's provider-neutral requests into model-specific HTTP payload structures and translate model responses back into standard EzAgent types.
 
-## OpenAI Provider
+---
+
+## 1. OpenAI Provider (`OpenAIProvider`)
+
+Supports all OpenAI chat models (e.g. `gpt-4o`, `gpt-4.1-mini`, `gpt-3.5-turbo`):
 
 ```typescript
 import { OpenAIProvider } from "ezagent";
 
-const provider = new OpenAIProvider({
+const openai = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY!,
-  baseUrl: "https://api.openai.com/v1" // Optional custom base URL
+  baseUrl: "https://api.openai.com/v1", // Optional custom endpoint / proxy
+  organization: "org-12345", // Optional organization ID
+  headers: { "X-Custom-Header": "value" } // Optional custom HTTP headers
 });
 ```
 
-## Gemini Provider
+---
+
+## 2. Google Gemini Provider (`GeminiProvider`)
+
+Supports Google Gemini models (e.g. `gemini-2.0-flash`, `gemini-1.5-pro`):
 
 ```typescript
 import { GeminiProvider } from "ezagent";
 
-const provider = new GeminiProvider({
-  apiKey: process.env.GEMINI_API_KEY!
+const gemini = new GeminiProvider({
+  apiKey: process.env.GEMINI_API_KEY!,
+  baseUrl: "https://generativelanguage.googleapis.com" // Optional custom endpoint
 });
 ```
 
-## Creating a Custom Provider
+---
 
-You can implement the `Provider` interface to integrate any LLM (e.g. Anthropic, local Ollama):
+## 3. Implementing a Custom Provider
+
+You can integrate any custom model or local LLM server (e.g. Anthropic, Ollama, vLLM) by implementing the `Provider` interface:
 
 ```typescript
-import type { Provider, ProviderChatRequest, ProviderResponse, ProviderStreamEvent } from "ezagent";
+import type {
+  Provider,
+  ProviderCallOptions,
+  ProviderCapabilities,
+  ProviderChatRequest,
+  ProviderResponse,
+  ProviderStreamEvent
+} from "ezagent";
 
-export class CustomLLMProvider implements Provider {
-  readonly id = "custom-llm";
-  readonly capabilities = {
+export class OllamaProvider implements Provider {
+  readonly id = "ollama";
+  readonly capabilities: ProviderCapabilities = {
     streaming: true,
     tools: true,
     structuredOutput: false,
     imageInput: false
   };
 
-  async chat(request: ProviderChatRequest): Promise<ProviderResponse> {
-    // Send request to your LLM and return normalized response
+  async chat(
+    request: ProviderChatRequest,
+    options?: ProviderCallOptions
+  ): Promise<ProviderResponse> {
+    const response = await fetch("http://localhost:11434/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: request.model,
+        messages: request.messages,
+        stream: false
+      }),
+      signal: options?.signal
+    });
+
+    const data = await response.json();
     return {
       provider: this.id,
       model: request.model,
       finishReason: "stop",
-      message: { role: "assistant", content: "Custom response" }
+      message: {
+        role: "assistant",
+        content: data.message.content
+      }
     };
   }
 
-  async *stream(request: ProviderChatRequest): AsyncGenerator<ProviderStreamEvent> {
+  async *stream(
+    request: ProviderChatRequest,
+    options?: ProviderCallOptions
+  ): AsyncGenerator<ProviderStreamEvent> {
+    // Yield streaming tokens
     yield { type: "response.start", provider: this.id, model: request.model };
-    yield { type: "text.delta", provider: this.id, delta: "Custom response" };
+    yield { type: "text.delta", provider: this.id, delta: "Ollama stream chunk" };
     yield {
       type: "response.completed",
       provider: this.id,
-      response: await this.chat(request)
+      response: await this.chat(request, options)
     };
   }
 }
@@ -63,4 +104,48 @@ export class CustomLLMProvider implements Provider {
 
 ---
 
-Learn about multi-turn conversation storage in [Sessions](./sessions.mdx).
+## 4. Fallback Provider Pattern
+
+You can build a multi-provider fallback wrapper that attempts OpenAI first and automatically falls back to Gemini if OpenAI fails:
+
+```typescript
+import { ProviderError } from "ezagent";
+import type { Provider, ProviderChatRequest, ProviderResponse } from "ezagent";
+
+export class FallbackProvider implements Provider {
+  readonly id = "fallback-provider";
+  readonly capabilities = {
+    streaming: false,
+    tools: true,
+    structuredOutput: true,
+    imageInput: false
+  };
+
+  constructor(
+    private readonly primary: Provider,
+    private readonly fallback: Provider
+  ) {}
+
+  async chat(request: ProviderChatRequest): Promise<ProviderResponse> {
+    try {
+      return await this.primary.chat(request);
+    } catch (error) {
+      if (error instanceof ProviderError && error.retryable) {
+        console.warn(
+          `Primary provider ${this.primary.id} failed; switching to fallback ${this.fallback.id}`
+        );
+        return await this.fallback.chat(request);
+      }
+      throw error;
+    }
+  }
+
+  async *stream() {
+    throw new Error("Fallback streaming not implemented.");
+  }
+}
+```
+
+---
+
+Next: Learn about conversation transcript persistence in [Sessions](./sessions).

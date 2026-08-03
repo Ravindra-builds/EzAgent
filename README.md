@@ -10,22 +10,12 @@
   <a href="#installation">Install</a> ·
   <a href="#30-second-quick-start">Quick Start</a> ·
   <a href="#examples">Examples</a> ·
-  <a href="./docs/README.md">Documentation</a> ·
-  <a href="./CONTRIBUTING.md">Contributing</a>
+  <a href="https://ez-agent.mintlify.site/docs/introduction">Documentation</a> ·
+  <a href="./CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://github.com/Ravindra-builds/EzAgent">GitHub</a>
 </p>
 
-# EzAgent
-
 EzAgent is a lightweight, provider-agnostic TypeScript SDK for building AI agents without delegating the runtime to another framework.
-
-## Why EzAgent
-
-- **Lightweight** — focused modules, small dependency surface, no hosted platform requirement.
-- **Provider agnostic** — run the same Agent through OpenAI, Gemini, or your own `Provider` implementation.
-- **Transparent runtime** — inspect transcripts, tools, retries, handoffs, traces, and final output.
-- **Event driven** — subscribe to provider, token, tool, guardrail, handoff, middleware, retry, and completion events.
-- **Type safe** — strict TypeScript, Zod-backed tools, typed structured output, immutable configuration, and typed runtime events.
-- **Production-minded defaults** — bounded iterations, tool calls, handoffs, output repairs, deadlines, cancellation, and retry policies.
 
 ## Installation
 
@@ -129,16 +119,44 @@ All examples are type-checked by `npm run check:examples` and are included in th
 
 ## Documentation
 
-Documentation lives in [`docs/`](docs/README.md) and is included in the package.
+Full interactive documentation is deployed at [ez-agent.mintlify.site](https://ez-agent.mintlify.site/docs/introduction).
 
-- [Agents and runtime](docs/agents-and-runtime.md)
-- [Providers](docs/providers.md)
-- [Tools and events](docs/tools-and-events.md)
-- [Sessions and memory](docs/sessions-and-memory.md)
-- [Guardrails, output, and streaming](docs/guardrails-output-streaming.md)
-- [Handoffs, tracing, middleware, and plugins](docs/handoffs-tracing-middleware-plugins.md)
-- [API reference](docs/api-reference.md)
-- [Playground](docs/playground.md)
+### Getting Started
+
+- [Introduction](https://ez-agent.mintlify.site/docs/introduction)
+- [Installation](https://ez-agent.mintlify.site/docs/installation)
+- [30-Second Quickstart](https://ez-agent.mintlify.site/docs/quickstart)
+- [Creating Your First Agent](https://ez-agent.mintlify.site/docs/first-agent)
+
+### Core Architecture
+
+- [Runtime Engine](https://ez-agent.mintlify.site/docs/runtime)
+- [Defining Tools](https://ez-agent.mintlify.site/docs/tools)
+- [LLM Providers](https://ez-agent.mintlify.site/docs/providers)
+
+### State & Persistence
+
+- [Sessions & Conversation History](https://ez-agent.mintlify.site/docs/sessions)
+- [Long-Term Factual Memory](https://ez-agent.mintlify.site/docs/memory)
+- [Storage Adapters](https://ez-agent.mintlify.site/docs/storage)
+
+### Advanced Features
+
+- [Real-Time Streaming](https://ez-agent.mintlify.site/docs/streaming)
+- [Structured Output & Auto-Repair](https://ez-agent.mintlify.site/docs/structured-output)
+- [Guardrails & Safety](https://ez-agent.mintlify.site/docs/guardrails)
+- [Multi-Agent Handoffs](https://ez-agent.mintlify.site/docs/handoffs)
+
+### Observability & Extensibility
+
+- [Tracing & Telemetry](https://ez-agent.mintlify.site/docs/tracing)
+- [Plugins](https://ez-agent.mintlify.site/docs/plugins)
+- [Lifecycle Middleware](https://ez-agent.mintlify.site/docs/middleware)
+
+### Reference
+
+- [Frequently Asked Questions](https://ez-agent.mintlify.site/docs/faq)
+- [API Reference](https://ez-agent.mintlify.site/docs/api-reference)
 
 ## Contributing
 
