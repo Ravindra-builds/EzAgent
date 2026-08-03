@@ -15,7 +15,19 @@
   <a href="https://github.com/Ravindra-builds/EzAgent">GitHub</a>
 </p>
 
+# EzAgent
+
 EzAgent is a lightweight, provider-agnostic TypeScript SDK for building AI agents without delegating the runtime to another framework.
+
+## Why EzAgent
+
+- **Lightweight** — focused modules, small dependency surface, no hosted platform requirement.
+- **Provider agnostic** — run the same Agent through OpenAI, Gemini, or your own `Provider` implementation.
+- **Transparent runtime** — inspect transcripts, tools, retries, handoffs, traces, and final output.
+- **Event driven** — subscribe to provider, token, tool, guardrail, handoff, middleware, retry, and completion events.
+- **Type safe** — strict TypeScript, Zod-backed tools, typed structured output, immutable configuration, and typed runtime events.
+- **Production-minded defaults** — bounded iterations, tool calls, handoffs, output repairs, deadlines, cancellation, and retry policies.
+
 
 ## Installation
 
