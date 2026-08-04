@@ -28,7 +28,6 @@ EzAgent is a lightweight, provider-agnostic TypeScript SDK for building AI agent
 - **Type safe** — strict TypeScript, Zod-backed tools, typed structured output, immutable configuration, and typed runtime events.
 - **Production-minded defaults** — bounded iterations, tool calls, handoffs, output repairs, deadlines, cancellation, and retry policies.
 
-
 ## Installation
 
 Choose your package manager:

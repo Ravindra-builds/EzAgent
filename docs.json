@@ -2,11 +2,11 @@
   "$schema": "https://mintlify.com/docs.json",
   "name": "EzAgent",
   "theme": "mint",
+  "github": "https://github.com/Ravindra-builds/EzAgent",
   "logo": {
     "light": "/assets/ezagent-logo.png",
     "dark": "/assets/ezagent-logo.png",
-    "href": "https://ez-agent.mintlify.site/docs/introduction",
-    "height": 50
+    "href": "https://ez-agent.mintlify.site/docs/introduction"
   },
   "favicon": "/assets/ezagent-logo.png",
   "colors": {
@@ -14,13 +14,6 @@
     "light": "#818CF8",
     "dark": "#4F46E5"
   },
-  "anchors": [
-    {
-      "name": "",
-      "icon": "github",
-      "url": "https://github.com/Ravindra-builds/EzAgent"
-    }
-  ],
   "navigation": {
     "groups": [
       {
