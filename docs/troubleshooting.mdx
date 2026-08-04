@@ -1,0 +1,158 @@
+# Troubleshooting Guide
+
+Find quick solutions to common errors and setup issues when building with EzAgent.
+
+---
+
+## 1. Missing API Key (`ProviderConfigurationError`)
+
+### Error Message
+
+```text
+ProviderConfigurationError: OpenAI requires a non-empty API key.
+```
+
+or
+
+```text
+ProviderConfigurationError: Gemini requires a non-empty API key.
+```
+
+### Cause
+
+Your environment variable `OPENAI_API_KEY` or `GEMINI_API_KEY` was not found or is empty in `process.env`.
+
+### Solution
+
+1. Ensure your `.env` file exists at the root of your project:
+   ```env
+   OPENAI_API_KEY=sk-proj-your_actual_key_here
+   ```
+2. Import `dotenv/config` at the **very top** of your entry file (`index.ts`):
+   ```typescript
+   import "dotenv/config"; // Must be line 1!
+   import { Agent, OpenAIProvider, Runner } from "ezagent";
+   ```
+3. Alternatively, run your script with `dotenv`:
+   ```bash
+   npx tsx --env-file=.env index.ts
+   ```
+
+---
+
+## 2. Module & Import Errors (`SyntaxError: Cannot use import statement...`)
+
+### Error Message
+
+```text
+SyntaxError: Cannot use import statement outside a module
+```
+
+or
+
+```text
+TypeError: Unknown file extension ".ts"
+```
+
+### Cause
+
+Node.js is attempting to run TypeScript files as CommonJS modules without ESM module resolution enabled.
+
+### Solution
+
+1. Ensure your `package.json` contains `"type": "module"`:
+   ```json
+   {
+     "name": "my-ai-agent",
+     "version": "1.0.0",
+     "type": "module"
+   }
+   ```
+2. Ensure your `tsconfig.json` specifies `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`.
+3. Use `npx tsx index.ts` instead of `node index.ts` to execute TypeScript files directly.
+
+---
+
+## 3. Tool Argument Validation Failure (`ToolError` / `ValidationError`)
+
+### Error Message
+
+```text
+ValidationError: Tool "get_weather" received invalid arguments.
+```
+
+### Cause
+
+The LLM called a tool with parameters that failed your tool's Zod schema validation (e.g. passed a string instead of a number, or missed a required field).
+
+### Solution
+
+- EzAgent automatically catches tool validation errors and passes them back to the model as tool failure messages so the LLM can self-correct!
+- If you want strict client-side schemas, double-check your Zod schema fields:
+  ```typescript
+  const myTool = tool({
+    name: "get_weather",
+    description: "Get weather for a city.",
+    schema: z.object({
+      city: z.string().min(1, "City must not be empty"),
+      units: z.enum(["celsius", "fahrenheit"]).default("celsius")
+    }),
+    execute: async ({ city, units }) => { ... }
+  });
+  ```
+
+---
+
+## 4. Run Deadline Exceeded (`TimeoutError`)
+
+### Error Message
+
+```text
+TimeoutError: Run "run_123" timed out after 120000ms.
+```
+
+### Cause
+
+The complete agent run (including LLM responses and tool executions) took longer than the configured timeout deadline.
+
+### Solution
+
+Increase `timeoutMs` in `Runner` or set a custom tool timeout:
+
+```typescript
+const runner = new Runner({
+  timeoutMs: 300_000 // Increase run deadline to 5 minutes
+});
+```
+
+---
+
+## 5. Handoff Cycle or Limit Error (`HandoffError`)
+
+### Error Message
+
+```text
+HandoffError: Handoff cycle detected: agent "AgentA" was already visited.
+```
+
+or
+
+```text
+HandoffError: Run reached maximum of 5 handoffs.
+```
+
+### Cause
+
+An agent attempted to delegate to an agent that was already visited in the current execution path, or exceeded `maxHandoffs`.
+
+### Solution
+
+- Ensure each agent in a handoff chain has a **unique name** (`name: "Triage"`, `name: "BillingSpecialist"`).
+- Increase `maxHandoffs` if you have a deep triage hierarchy:
+  ```typescript
+  const runner = new Runner({ maxHandoffs: 10 });
+  ```
+
+---
+
+Need more help? Join our [GitHub Discussions](https://github.com/Ravindra-builds/EzAgent/discussions) or open an issue on [GitHub Issues](https://github.com/Ravindra-builds/EzAgent/issues)!

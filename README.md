@@ -155,6 +155,7 @@ Full interactive documentation is deployed at [ez-agent.mintlify.site](https://e
 
 ### Reference
 
+- [Troubleshooting Guide](https://ez-agent.mintlify.site/docs/troubleshooting)
 - [Frequently Asked Questions](https://ez-agent.mintlify.site/docs/faq)
 - [API Reference](https://ez-agent.mintlify.site/docs/api-reference)
 

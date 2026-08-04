@@ -7,13 +7,25 @@
     "light": "/assets/ezagent-logo.png",
     "dark": "/assets/ezagent-logo.png",
     "href": "https://ez-agent.mintlify.site/docs/introduction",
-    "height": 40
+    "height": 50
   },
   "favicon": "/assets/ezagent-logo.png",
   "colors": {
     "primary": "#6366F1",
     "light": "#818CF8",
     "dark": "#4F46E5"
+  },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/Ravindra-builds/EzAgent"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Ravindra-builds/EzAgent"
+    }
   },
   "topbarLinks": [
     {
@@ -55,7 +67,7 @@
     },
     {
       "group": "Reference",
-      "pages": ["docs/faq", "docs/api-reference"]
+      "pages": ["docs/troubleshooting", "docs/faq", "docs/api-reference"]
     }
   ],
   "footerSocials": {
