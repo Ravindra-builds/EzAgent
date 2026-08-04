@@ -2,7 +2,6 @@
   "$schema": "https://mintlify.com/docs.json",
   "name": "EzAgent",
   "theme": "mint",
-  "github": "https://github.com/Ravindra-builds/EzAgent",
   "logo": {
     "light": "/assets/ezagent-logo.png",
     "dark": "/assets/ezagent-logo.png",
@@ -15,31 +14,9 @@
     "light": "#818CF8",
     "dark": "#4F46E5"
   },
-  "navbar": {
-    "links": [
-      {
-        "type": "github",
-        "href": "https://github.com/Ravindra-builds/EzAgent"
-      }
-    ],
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/Ravindra-builds/EzAgent"
-    }
-  },
-  "topbarLinks": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/Ravindra-builds/EzAgent"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "GitHub",
-    "url": "https://github.com/Ravindra-builds/EzAgent"
-  },
   "anchors": [
     {
-      "name": "GitHub",
+      "name": "",
       "icon": "github",
       "url": "https://github.com/Ravindra-builds/EzAgent"
     }
