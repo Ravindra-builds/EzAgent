@@ -1,40 +1,142 @@
-# Defining Tools
+# Defining & Using Tools
 
-Tools allow your agents to fetch data, compute calculations, query databases, or call third-party APIs. In EzAgent, tools are created using the `tool()` helper function and Zod schemas.
+Tools enable your AI agents to take real-world actions: fetch weather forecasts, query databases, calculate math formulas, call external HTTP APIs, or read local files.
+
+In EzAgent, tools are defined by you using the `tool()` helper function and Zod schemas for parameter validation.
 
 ---
 
-## Defining a Tool
+## 1. Where Do Tools Live in Your Project?
 
-Use `tool()` to construct a type-safe tool definition:
+> **Question**: Is `./tools` an official package import or a project file you create?  
+> **Answer**: You create the tool files in your own project codebase! `ezagent` provides the `tool()` builder function, and you define the tools your agent needs.
+
+Depending on your project size, here is how you should organize your custom tool files:
+
+### Option A: Small Project (Single `tools.ts` file)
+
+If you are building a small project or quick script, create a file named `tools.ts` right next to your `index.ts`:
+
+```text
+my-ai-agent/
+├── .env
+├── package.json
+├── tsconfig.json
+├── tools.ts            <-- Create this file & write your custom tool() definitions
+└── index.ts            <-- Import tools using: import { calculatorTool } from "./tools.js"
+```
+
+---
+
+### Option B: Production App (Universal `src/tools/` Directory)
+
+Recommended for larger projects, multi-agent systems, or when using Next.js, Express, NestJS, or Fastify:
+
+```text
+my-ai-agent/
+├── .env
+├── package.json
+├── tsconfig.json
+└── src/
+    ├── tools/          <-- Create a "tools" folder inside your "src" directory
+    │   ├── calculator.ts   <-- Math calculator tool
+    │   ├── weather.ts      <-- Weather lookup tool
+    │   └── index.ts        <-- Re-exports all tools: export * from "./calculator.js"
+    ├── agents/         <-- Create an "agents" folder for your AI Agent definitions
+    │   └── assistant.ts
+    └── index.ts        <-- Main application entry point
+```
+
+---
+
+## 2. What is a Tool?
+
+A Tool consists of four main parts:
+
+1. **`name`**: Unique identifier string for the tool (e.g., `"calculator"`, `"get_weather"`).
+2. **`description`**: Clear explanation telling the model _when_ and _why_ to use the tool.
+3. **`schema`**: A Zod schema defining the arguments the model must provide when calling the tool.
+4. **`execute`**: The TypeScript function that runs when the model invokes the tool.
+
+---
+
+## 3. Pre-Written Tools Library (Ready to Copy-Paste)
+
+Below are ready-to-use, pre-written tools for common application requirements. You can copy and paste any of these directly into your project!
+
+### Tool 1: Math Calculator Tool (`calculatorTool`)
+
+Allows your agent to perform accurate mathematical operations:
 
 ```typescript
 import { tool } from "ezagent";
 import { z } from "zod";
 
-export const getWeatherTool = tool({
+export const calculatorTool = tool({
+  name: "calculator",
+  description:
+    "Performs mathematical calculations like addition, subtraction, multiplication, and division.",
+  schema: z.object({
+    operation: z
+      .enum(["add", "subtract", "multiply", "divide"])
+      .describe("The operation to perform"),
+    a: z.number().describe("The first number"),
+    b: z.number().describe("The second number")
+  }),
+  execute: async ({ operation, a, b }) => {
+    switch (operation) {
+      case "add":
+        return { result: a + b };
+      case "subtract":
+        return { result: a - b };
+      case "multiply":
+        return { result: a * b };
+      case "divide":
+        if (b === 0) throw new Error("Cannot divide by zero.");
+        return { result: a / b };
+    }
+  }
+});
+```
+
+---
+
+### Tool 2: Weather Lookup Tool (`weatherTool`)
+
+Fetches weather information for a specified city:
+
+```typescript
+import { tool } from "ezagent";
+import { z } from "zod";
+
+export const weatherTool = tool({
   name: "get_weather",
-  description: "Get the current weather forecast for a specified city.",
+  description: "Gets the current weather temperature and conditions for a given city.",
   schema: z.object({
     city: z.string().min(1, "City name must not be empty"),
     units: z.enum(["celsius", "fahrenheit"]).default("celsius")
   }),
-  timeoutMs: 5000, // Optional tool-level deadline in milliseconds
+  timeoutMs: 5000, // Tool deadline in milliseconds
   execute: async ({ city, units }, context) => {
-    // Access context.runId, context.signal, context.context if needed
-    console.log(`Tool runId: ${context.runId}`);
+    // Perform fetch call respecting cancellation signal
+    const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, {
+      signal: context.signal
+    }).catch(() => null);
 
-    // Call external weather API
-    const response = await fetch(`https://api.weather.example/v1?city=${city}&units=${units}`, {
-      signal: context.signal // Respect cancellation!
-    });
+    if (!response || !response.ok) {
+      // Fallback response if offline
+      return { city, temperature: 22, units, condition: "Sunny (Simulated)" };
+    }
 
     const data = await response.json();
+    const current = data.current_condition?.[0];
+    const temp = units === "fahrenheit" ? current?.temp_F : current?.temp_C;
+
     return {
       city,
-      temperature: data.temp ?? 22,
+      temperature: Number(temp ?? 22),
       units,
-      condition: data.condition ?? "Sunny"
+      condition: current?.weatherDesc?.[0]?.value ?? "Clear"
     };
   }
 });
@@ -42,60 +144,154 @@ export const getWeatherTool = tool({
 
 ---
 
-## Tool Execution Context (`ToolContext`)
+### Tool 3: Web Search Tool (`webSearchTool`)
 
-Every tool's `execute` function receives `context` as its second argument:
-
-```typescript
-export interface ToolContext<TContext = unknown> {
-  readonly runId: string; // Unique identifier for the current run
-  readonly toolCallId: string; // ID assigned to this tool call by the LLM
-  readonly signal: AbortSignal; // Cancellation signal to pass to async calls
-  readonly context?: TContext; // Custom user context passed to runner.run()
-}
-```
-
----
-
-## Error Handling in Tools
-
-If your tool's `execute` function throws an error:
-
-1. `Runner` catches the exception.
-2. `Runner` converts the error into a structured tool error message (`TOOL_ERROR`).
-3. `Runner` passes the error message back to the LLM as a tool result message.
-4. The LLM gets a chance to recover, explain the error, or call an alternative tool!
+Queries a web search endpoint for real-time information:
 
 ```typescript
-export const databaseQueryTool = tool({
-  name: "query_database",
-  description: "Queries the customer SQL database.",
-  schema: z.object({ sql: z.string() }),
-  execute: async ({ sql }) => {
-    if (sql.includes("DROP TABLE")) {
-      throw new Error("Dangerous SQL queries are prohibited.");
-    }
-    return { rows: [] };
+import { tool } from "ezagent";
+import { z } from "zod";
+
+export const webSearchTool = tool({
+  name: "web_search",
+  description: "Searches the web for recent information, news, or documentation.",
+  schema: z.object({
+    query: z.string().min(1, "Search query must not be empty"),
+    maxResults: z.number().int().min(1).max(5).default(3)
+  }),
+  execute: async ({ query, maxResults }) => {
+    // You can replace this with your preferred search API (Tavily, Serper, Bing, etc.)
+    return {
+      query,
+      results: [
+        {
+          title: `Latest updates on ${query}`,
+          snippet: `EzAgent is a lightweight, provider-agnostic TypeScript SDK for building AI agents.`,
+          url: "https://ez-agent.mintlify.site"
+        }
+      ].slice(0, maxResults)
+    };
   }
 });
 ```
 
 ---
 
-## Adding Tools to an Agent
+### Tool 4: Current Date & Time Tool (`dateTimeTool`)
 
-Pass tools in the `tools` array when defining your `Agent`:
+Provides the agent with the exact current timestamp and timezone:
 
 ```typescript
-const agent = new Agent({
-  name: "AssistantWithTools",
-  instructions: "Use get_weather and query_database tools whenever required.",
-  model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
-  tools: [getWeatherTool, databaseQueryTool]
+import { tool } from "ezagent";
+import { z } from "zod";
+
+export const dateTimeTool = tool({
+  name: "get_current_datetime",
+  description: "Returns the current date, time, day of the week, and timezone information.",
+  schema: z.object({}), // No parameters required
+  execute: async () => {
+    const now = new Date();
+    return {
+      isoTimestamp: now.toISOString(),
+      date: now.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      }),
+      time: now.toLocaleTimeString("en-US"),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+  }
 });
 ```
 
 ---
 
-Next: Learn about model providers in [LLM Providers](./providers).
+### Tool 5: Database Lookup Tool (`databaseQueryTool`)
+
+Simulates querying customer database records by ID:
+
+```typescript
+import { tool } from "ezagent";
+import { z } from "zod";
+
+export const databaseQueryTool = tool({
+  name: "get_customer_record",
+  description: "Retrieves customer profile and account details from the database by customer ID.",
+  schema: z.object({
+    customerId: z.string().describe("e.g. cust_1001")
+  }),
+  execute: async ({ customerId }) => {
+    // Mock database lookup
+    const mockDb: Record<string, { name: string; email: string; plan: string }> = {
+      cust_1001: { name: "Alice Smith", email: "alice@example.com", plan: "Pro" },
+      cust_1002: { name: "Bob Jones", email: "bob@example.com", plan: "Enterprise" }
+    };
+
+    const record = mockDb[customerId];
+    if (!record) {
+      throw new Error(`Customer ID "${customerId}" was not found in the database.`);
+    }
+
+    return { customerId, ...record };
+  }
+});
+```
+
+---
+
+## 4. Tool Execution Context (`ToolContext`)
+
+Every tool's `execute` function receives a `ToolContext` object as its second argument:
+
+```typescript
+export interface ToolContext<TContext = unknown> {
+  readonly runId: string; // Unique run ID generated by Runner
+  readonly toolCallId: string; // Unique tool call ID assigned by the LLM
+  readonly signal: AbortSignal; // Cancellation signal to pass to fetch / DB calls
+  readonly context?: TContext; // Custom context object passed to runner.run()
+}
+```
+
+---
+
+## 5. Complete Runnable Example: Running an Agent with Pre-Written Tools
+
+Assuming you placed your pre-written tools in a `tools.ts` file in your root folder:
+
+```typescript index.ts
+import "dotenv/config";
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+import { calculatorTool, weatherTool, dateTimeTool } from "./tools.js";
+
+// 1. Create LLM Provider
+const provider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!
+});
+
+// 2. Create Agent with Tools
+const agent = new Agent({
+  name: "MultiToolAssistant",
+  instructions:
+    "You are a helpful assistant. Use tools whenever calculation, weather, or date questions are asked.",
+  model: "gpt-4.1-mini",
+  provider,
+  tools: [calculatorTool, weatherTool, dateTimeTool]
+});
+
+// 3. Execute Run
+const runner = new Runner();
+
+console.log("Running MultiToolAssistant...");
+const result = await runner.run(agent, {
+  input: "What is the current date, what is 144 / 12, and what is the weather in Tokyo?"
+});
+
+console.log("\nFinal Output:");
+console.log(result.output);
+```
+
+---
+
+Next: Learn how LLM providers translate requests in [LLM Providers](./providers).

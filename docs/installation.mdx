@@ -1,6 +1,6 @@
 # Complete Installation & Project Setup
 
-This guide will take you step-by-step from an empty directory to a fully working EzAgent project. Even if you are brand new to TypeScript and Node.js, you can follow these exact steps to build your first AI agent in minutes.
+This guide will take you step-by-step from an empty directory to a fully working EzAgent project. Even if you are brand new to TypeScript and Node.js, you can follow these exact steps to build your first AI agent without any external help.
 
 ---
 
@@ -8,7 +8,7 @@ This guide will take you step-by-step from an empty directory to a fully working
 
 Make sure you have Node.js installed on your computer.
 
-Open your terminal (or Command Prompt / PowerShell) and run:
+Open your terminal (Command Prompt or PowerShell on Windows, Terminal on macOS/Linux) and run:
 
 ```bash
 node -v
@@ -37,7 +37,7 @@ Initialize a new Node.js project to manage dependencies:
 npm init -y
 ```
 
-This creates a `package.json` file in your directory. Now, enable modern ES Modules support by adding `"type": "module"` to `package.json`:
+This creates a `package.json` file in your directory. Now, enable modern ES Modules support by adding `"type": "module"` to your `package.json`:
 
 ```json package.json
 {
@@ -49,16 +49,16 @@ This creates a `package.json` file in your directory. Now, enable modern ES Modu
 
 ---
 
-## Step 4: Install EzAgent & Subdependencies
+## Step 4: Install EzAgent & Dependencies
 
-Install the EzAgent SDK and its required subdependencies:
+Install the EzAgent SDK along with its required dependencies and developer tools:
 
 <CodeGroup>
 ```bash npm
-# Core SDK and Schema validation
+# 1. Primary SDK and Zod Schema Validator
 npm install ezagent zod
 
-# Developer tooling (TypeScript compiler, runner, dotenv)
+# 2. Developer Tooling (TypeScript compiler, runner, dotenv)
 
 npm install -D typescript tsx dotenv @types/node
 
@@ -81,20 +81,20 @@ yarn add -D typescript tsx dotenv @types/node
 
 </CodeGroup>
 
-### Why are these packages required?
+### What does each package do?
 
-| Package           | Type                   | Why is it needed?                                                                    |
-| ----------------- | ---------------------- | ------------------------------------------------------------------------------------ |
-| **`ezagent`**     | Primary                | The core EzAgent SDK containing `Agent`, `Runner`, and Provider adapters.            |
-| **`zod`**         | Required Subdependency | Schema library used to validate tool parameters and enforce structured JSON outputs. |
-| **`dotenv`**      | Helper                 | Automatically loads your secret API keys from a local `.env` file.                   |
-| **`tsx`**         | Dev Tool               | Fast TypeScript execution tool that runs `.ts` files directly (`npx tsx index.ts`).  |
-| **`typescript`**  | Dev Tool               | TypeScript language compiler for type checks and autocompletion in your editor.      |
-| **`@types/node`** | Dev Tool               | Type definitions for Node.js built-ins (`process.env`, `fetch`, `AbortController`).  |
+| Package           | Type                | Why is it needed?                                                                                                  |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **`ezagent`**     | Primary SDK         | The core EzAgent package containing `Agent`, `Runner`, and Provider adapters (`OpenAIProvider`, `GeminiProvider`). |
+| **`zod`**         | Required Dependency | Schema validation library used to define tool parameters and enforce typed JSON outputs.                           |
+| **`dotenv`**      | Helper              | Loads your secret API keys from a local `.env` file into Node's `process.env`.                                     |
+| **`tsx`**         | Dev Tool            | Fast TypeScript runner that executes `.ts` files directly (`npx tsx index.ts`) without manually compiling first.   |
+| **`typescript`**  | Dev Tool            | TypeScript language compiler for autocompletion and type-checking in VS Code or your IDE.                          |
+| **`@types/node`** | Dev Tool            | Type definitions for Node.js built-ins (`process.env`, `fetch`, `AbortController`).                                |
 
 ---
 
-## Step 5: Initialize TypeScript (`tsconfig.json`)
+## Step 5: Initialize & Configure TypeScript (`tsconfig.json`)
 
 Generate a default TypeScript configuration file by running:
 
@@ -102,7 +102,7 @@ Generate a default TypeScript configuration file by running:
 npx tsc --init
 ```
 
-Now open the newly created `tsconfig.json` file. Replace its contents with the recommended configuration below:
+Now open the newly created `tsconfig.json` file in your editor. Replace its contents with this recommended, production-ready configuration:
 
 ```json tsconfig.json
 {
@@ -110,6 +110,7 @@ Now open the newly created `tsconfig.json` file. Replace its contents with the r
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -118,32 +119,18 @@ Now open the newly created `tsconfig.json` file. Replace its contents with the r
 }
 ```
 
-### Key `tsconfig.json` Settings Explained
+### Key `tsconfig.json` Options Explained
 
-- **`"target": "ES2022"`**: Ensures modern JavaScript syntax features (like top-level `await` and `async/await`) work smoothly.
+- **`"target": "ES2022"`**: Enables modern JavaScript syntax features like top-level `await` and `async/await`.
 - **`"module": "NodeNext"` & `"moduleResolution": "NodeNext"`**: Enables native Node.js ES Module (`import/export`) resolution for TypeScript.
-- **`"strict": true"`**: Enforces strict type safety to prevent common runtime errors like `undefined` or `null` crashes.
+- **`"types": ["node"]`**: Tells TypeScript to load Node.js global types automatically (so `process.env` and `fetch` work without errors).
+- **`"strict": true`**: Enables strict type checking to catch `null` or `undefined` bugs before your code runs.
 
 ---
 
-## Step 6: Recommended File & Project Structure
+## Step 6: Create Your Secret `.env` File
 
-At this point, your project directory should look like this:
-
-```text
-my-ai-agent/
-├── .env                <-- Store your secret API keys here
-├── .gitignore          <-- Ignore node_modules and .env from Git
-├── package.json        <-- Project dependencies & scripts
-├── tsconfig.json       <-- TypeScript configuration
-└── index.ts            <-- Your primary AI Agent code
-```
-
----
-
-## Step 7: Create Your `.env` Secret File
-
-Create a file named `.env` in the root of your project:
+Create a file named `.env` in the root folder of your project and fill the details:
 
 ```env .env
 # OpenAI API Key
@@ -153,24 +140,40 @@ OPENAI_API_KEY=sk-proj-your_actual_openai_key_here
 GEMINI_API_KEY=AIzaSy_your_actual_gemini_key_here
 ```
 
-> ⚠️ **Security Tip**: Never commit your `.env` file to GitHub! Create a `.gitignore` file and add `.env` inside it.
+> ⚠️ **Security Reminder**: Create a `.gitignore` file in your project root and add `.env` inside it so your secret keys are never committed to GitHub!
+
+---
+
+## Step 7: Complete File & Project Structure
+
+Before running your code, your project directory should look like this:
+
+```text
+my-ai-agent/
+├── node_modules/       <-- Installed npm dependencies (auto-generated)
+├── .env                <-- Your secret API keys
+├── .gitignore          <-- Ignores node_modules and .env from Git
+├── package.json        <-- Project dependencies & config
+├── tsconfig.json       <-- TypeScript configuration
+└── index.ts            <-- Your primary AI Agent code (created in Step 8)
+```
 
 ---
 
 ## Step 8: Create & Run Your First Agent (`index.ts`)
 
-Create a file named `index.ts` and paste the following code:
+Create a file named `index.ts` in your root folder and paste the following code:
 
 ```typescript index.ts
 import "dotenv/config"; // 1. Load .env variables at the very top
 import { Agent, OpenAIProvider, Runner } from "ezagent";
 
-// 2. Create the LLM Provider
+// 2. Create the LLM Provider instance
 const provider = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
-// 3. Define the Agent
+// 3. Define the Agent configuration
 const agent = new Agent({
   name: "Assistant",
   instructions: "You are a helpful AI assistant. Keep your responses brief and friendly.",
@@ -193,13 +196,13 @@ console.log(result.output);
 
 ### Run Command
 
-Execute your agent directly using `tsx`:
+Execute your agent directly in your terminal using `tsx`:
 
 ```bash
 npx tsx index.ts
 ```
 
-Output:
+Expected Output:
 
 ```text
 Running Agent...
@@ -210,8 +213,8 @@ EzAgent is a lightweight, provider-agnostic TypeScript SDK for building and runn
 
 ---
 
-## Next Steps & Helpful Links
+## Next Steps & Helpful Resources
 
-- **[30-Second Quickstart](./quickstart)** — Explore multi-turn sessions and tools.
-- **[Creating Your First Agent](./first-agent)** — In-depth guide to Agent options.
-- **[Troubleshooting Guide](./troubleshooting)** — Solutions for common setup errors.
+- **[Creating Your First Agent](./first-agent)** — Complete guide to Agent configuration options and immutability.
+- **[Pre-Written Tools](./tools)** — Copy-pasteable tools (Calculator, Web Search, Weather, Database).
+- **[Troubleshooting Guide](./troubleshooting)** — Solutions for common setup errors and missing keys.
