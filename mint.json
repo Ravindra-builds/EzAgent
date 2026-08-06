@@ -6,7 +6,8 @@
   "logo": {
     "light": "/assets/ezagent-logo.png",
     "dark": "/assets/ezagent-logo.png",
-    "href": "https://ez-agent.mintlify.site/docs/introduction"
+    "href": "https://ez-agent.mintlify.site/docs/introduction",
+    "height": 50
   },
   "favicon": "/assets/ezagent-logo.png",
   "colors": {
@@ -14,6 +15,15 @@
     "light": "#818CF8",
     "dark": "#4F46E5"
   },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/Ravindra-builds/EzAgent"
+      }
+    ]
+  },
+  
   "navigation": [
     {
       "group": "Getting Started",
