@@ -7,6 +7,7 @@ EzAgent provides native, event-driven streaming through `Runner.stream()`. Using
 ## Streaming Example
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, OpenAIProvider, Runner, tool } from "ezagent";
 import { z } from "zod";
 

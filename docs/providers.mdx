@@ -9,6 +9,7 @@ Providers translate EzAgent's provider-neutral requests into model-specific HTTP
 Supports all OpenAI chat models (e.g. `gpt-4o`, `gpt-4.1-mini`, `gpt-3.5-turbo`):
 
 ```typescript
+import "dotenv/config"; // Load process.env.OPENAI_API_KEY
 import { OpenAIProvider } from "ezagent";
 
 const openai = new OpenAIProvider({
@@ -26,6 +27,7 @@ const openai = new OpenAIProvider({
 Supports Google Gemini models (e.g. `gemini-2.0-flash`, `gemini-1.5-pro`):
 
 ```typescript
+import "dotenv/config"; // Load process.env.GEMINI_API_KEY
 import { GeminiProvider } from "ezagent";
 
 const gemini = new GeminiProvider({

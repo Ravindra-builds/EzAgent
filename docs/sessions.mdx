@@ -17,12 +17,13 @@ Sessions manage multi-turn conversation transcripts across multiple runner invoc
 ## Session Usage Example
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, InMemoryStorage, OpenAIProvider, Runner } from "ezagent";
 
-// 1. Create a storage adapter
+// 2. Create a storage adapter
 const storage = new InMemoryStorage();
 
-// 2. Initialize Runner with storage
+// 3. Initialize Runner with storage
 const runner = new Runner({ storage });
 
 const agent = new Agent({

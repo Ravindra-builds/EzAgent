@@ -11,10 +11,11 @@ EzAgent handles JSON schema generation, output parsing, and **automatic repair r
 Pass a Zod schema to the `output` configuration property of an `Agent`:
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, OpenAIProvider, Runner } from "ezagent";
 import { z } from "zod";
 
-// 1. Define the target TypeScript type using Zod
+// 2. Define the target TypeScript type using Zod
 const InvoiceSchema = z.object({
   invoiceNumber: z.string(),
   customerName: z.string(),
@@ -28,7 +29,7 @@ const InvoiceSchema = z.object({
   )
 });
 
-// 2. Pass schema to Agent output
+// 3. Pass schema to Agent output
 const agent = new Agent({
   name: "InvoiceExtractor",
   instructions: "Extract invoice details from unstructured receipt text.",
@@ -37,7 +38,7 @@ const agent = new Agent({
   output: InvoiceSchema
 });
 
-// 3. Run Agent
+// 4. Run Agent
 const runner = new Runner({ maxOutputRetries: 3 });
 const result = await runner.run(agent, {
   input: "Receipt #INV-9021 for John Doe. Purchased 2 Laptops at $1200 each. Total: $2400."

@@ -19,12 +19,13 @@ While **Sessions** retain full conversation turn history, **Memory** dynamically
 `InMemoryMemory` stores facts and uses lexical matching to retrieve relevant items:
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, InMemoryMemory, OpenAIProvider, Runner } from "ezagent";
 
-// 1. Initialize the memory store
+// 2. Initialize the memory store
 const memoryStore = new InMemoryMemory();
 
-// 2. Save facts into a namespace
+// 3. Save facts into a namespace
 await memoryStore.save({
   namespace: "user_preferences",
   content: "User prefers concise answers written in bullet points."
@@ -35,7 +36,7 @@ await memoryStore.save({
   content: "User works as a Senior TypeScript Developer."
 });
 
-// 3. Configure Agent to use memory
+// 4. Configure Agent to use memory
 const agent = new Agent({
   name: "PersonalizedAgent",
   instructions: "Help the user with technical questions.",
@@ -47,7 +48,7 @@ const agent = new Agent({
   }
 });
 
-// 4. Run agent with a memory search query
+// 5. Run agent with a memory search query
 const runner = new Runner();
 const result = await runner.run(agent, {
   input: "How should I structure my new project?",

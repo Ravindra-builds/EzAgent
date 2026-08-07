@@ -16,11 +16,12 @@ Multi-Agent Handoffs allow a primary router agent to delegate complex tasks to s
 ## Multi-Agent Triage Router Example
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, handoff, OpenAIProvider, Runner } from "ezagent";
 
 const provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! });
 
-// 1. Define Specialist Agents
+// 2. Define Specialist Agents
 const billingAgent = new Agent({
   name: "BillingSpecialist",
   instructions: "You specialize in payment, invoice, and refund issues.",
@@ -35,7 +36,7 @@ const techSupportAgent = new Agent({
   provider
 });
 
-// 2. Define Primary Router Agent
+// 3. Define Primary Router Agent
 const routerAgent = new Agent({
   name: "TriageRouter",
   instructions: `
@@ -52,7 +53,7 @@ const routerAgent = new Agent({
   ]
 });
 
-// 3. Execute Run
+// 4. Execute Run
 const runner = new Runner({ maxHandoffs: 5 });
 const result = await runner.run(routerAgent, {
   input: "My credit card was charged twice for invoice #4400."

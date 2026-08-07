@@ -4,19 +4,20 @@ Get up and running with a functional AI agent in 30 seconds.
 
 ---
 
-## 1. Minimal Working Example
+## 1. Quickstart Code Example
 
-Create a file named `quickstart.ts`:
+Create a file named `quickstart.ts` in your project folder:
 
-```typescript
+```typescript quickstart.ts
+import "dotenv/config"; // 1. Load .env variables at the very top
 import { Agent, OpenAIProvider, Runner } from "ezagent";
 
-// 1. Initialize the Provider
+// 2. Initialize the LLM Provider
 const provider = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
-// 2. Define the Agent configuration
+// 3. Define the Agent configuration
 const agent = new Agent({
   name: "Assistant",
   instructions: "You are a helpful, concise assistant. Answer questions in 1-2 sentences.",
@@ -24,20 +25,20 @@ const agent = new Agent({
   provider
 });
 
-// 3. Create the Runner instance
+// 4. Create the Runner instance
 const runner = new Runner();
 
-// 4. Run the Agent
+// 5. Run the Agent
 const result = await runner.run(agent, {
   input: "What is an AI agent SDK?"
 });
 
-// 5. Output the result
+// 6. Output the result
 console.log("Agent Output:", result.output);
 console.log("Execution Time:", result.trace.durationMs, "ms");
 ```
 
-Run the file using `tsx` or `ts-node`:
+Run the file directly using `npx tsx`:
 
 ```bash
 npx tsx quickstart.ts
@@ -45,40 +46,107 @@ npx tsx quickstart.ts
 
 ---
 
-## 2. Interactive Playground CLI
+## 2. Setting Up an Interactive Playground (`npm run playground`)
 
-EzAgent ships with an interactive local CLI playground for rapid experimentation:
+You can create an interactive terminal CLI playground in your own project where you can chat with your agent in real-time.
+
+### Step A: Add `"playground"` script to your `package.json`
+
+Add `"playground": "tsx playground.ts"` to your `package.json` `scripts` section:
+
+```json package.json
+{
+  "name": "my-ai-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "playground": "tsx playground.ts"
+  }
+}
+```
+
+---
+
+### Step B: Create `playground.ts` File
+
+Create a file named `playground.ts` in your project root folder and paste this interactive loop:
+
+```typescript playground.ts
+import "dotenv/config"; // 1. Load .env variables
+import readline from "node:readline/promises";
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+
+// 2. Initialize Provider and Agent
+const provider = new OpenAIProvider({
+  apiKey: process.env.OPENAI_API_KEY!
+});
+
+const agent = new Agent({
+  name: "PlaygroundAssistant",
+  instructions: "You are a helpful AI assistant. Keep responses clear and concise.",
+  model: "gpt-4.1-mini",
+  provider
+});
+
+const runner = new Runner();
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+console.log("🚀 EzAgent Interactive Playground Started!");
+console.log("Type your prompt and press Enter (or type '/exit' to quit):\n");
+
+// 3. Interactive CLI loop
+while (true) {
+  const input = await rl.question("> ");
+
+  if (input.trim() === "/exit") {
+    console.log("Exiting playground. Goodbye!");
+    break;
+  }
+
+  if (!input.trim()) continue;
+
+  const result = await runner.run(agent, { input });
+  console.log(`\n🤖 ${result.output}\n`);
+}
+
+rl.close();
+```
+
+---
+
+### Step C: Run the Playground
+
+Start your interactive playground anytime by running:
 
 ```bash
-# 1. Copy the environment template
-cp .env.example .env
-
-# 2. Add your API key to .env
-# OPENAI_API_KEY=sk-...
-
-# 3. Launch the playground
 npm run playground
 ```
 
-### Interactive Playground Commands
+Output:
 
-| Command  | Description                                                |
-| -------- | ---------------------------------------------------------- |
-| `/trace` | Display the complete JSON execution trace of the last run. |
-| `/reset` | Clear the active session transcript history.               |
-| `/exit`  | Exit the interactive playground.                           |
+```text
+🚀 EzAgent Interactive Playground Started!
+Type your prompt and press Enter (or type '/exit' to quit):
+
+> Hello! Who are you?
+
+🤖 I am PlaygroundAssistant, an AI assistant built using EzAgent.
+```
 
 ---
 
 ## What Happened Under the Hood?
 
-When you called `runner.run(agent, { input: "..." })`:
+When `runner.run(agent, { input: "..." })` executes:
 
-1. `Runner` constructed the execution context and initialized a new run state.
-2. `Runner` formatted the prompt messages (`system` instructions + `user` input).
-3. `Runner` sent the request to `OpenAIProvider.chat()`.
-4. `OpenAIProvider` converted vendor response formats into standard EzAgent types.
-5. `Runner` stored trace metadata and returned a structured `RunResult`.
+1. `Runner` initializes the execution state and validates prompt input.
+2. `Runner` formats system instructions and conversation messages.
+3. `Runner` sends the request to the LLM provider (`OpenAIProvider` or `GeminiProvider`).
+4. Provider normalizes vendor HTTP responses into standard EzAgent output format.
+5. `Runner` records timing, trace telemetry, and returns a structured `RunResult`.
 
 ---
 

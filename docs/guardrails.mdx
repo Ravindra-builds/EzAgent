@@ -20,6 +20,7 @@ EzAgent supports four guardrail evaluation phases:
 Guardrails return either `allow` or `block("reason", metadata)`:
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, allow, block, GuardrailError, OpenAIProvider, Runner } from "ezagent";
 import type { ApprovalGuardrail, InputGuardrail, OutputGuardrail } from "ezagent";
 

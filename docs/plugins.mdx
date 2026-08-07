@@ -38,7 +38,9 @@ export const auditLoggingPlugin = plugin({
 Attach plugins using the immutable `.use()` method on `Agent`:
 
 ```typescript
+import "dotenv/config"; // 1. Load .env variables at line 1
 import { Agent, OpenAIProvider } from "ezagent";
+import { auditLoggingPlugin } from "./plugins.js";
 
 const agent = new Agent({
   name: "PluginAgent",
