@@ -1,30 +1,46 @@
 # Lifecycle Middleware
 
-Middleware hooks allow developers to intercept execution before a run begins, after a run finishes, or when a run throws an error.
+## What is Middleware?
+
+Middleware lets you **hook into the lifecycle of every agent run** — before it starts, after it finishes, or when it fails. Think of it like Express.js middleware, but for AI agent executions.
+
+**Common use cases:**
+
+- Logging every run's start time, agent name, and duration
+- Sending performance metrics to Datadog, Prometheus, or CloudWatch
+- Recording errors to Sentry or other error tracking tools
+- Validating or auditing inputs/outputs for compliance
 
 ---
 
-## Defining Runner Middleware
+## Defining Middleware
 
-Use the `middleware()` function:
+Use the `middleware()` factory function and register it with `Runner`:
 
 ```typescript
+import "dotenv/config";
 import { middleware, Runner } from "ezagent";
 
 const timingMiddleware = middleware({
   name: "performance_timer",
-  before: async ({ runId, agent }) => {
-    console.log(`[Timer] Starting run ${runId} (${agent.name})`);
+
+  // Runs BEFORE the agent starts (use agentName, NOT agent.name)
+  before: async ({ runId, agentName }) => {
+    console.log(`[Timer] Starting run ${runId} for agent "${agentName}"`);
   },
-  after: async ({ runId, durationMs }) => {
-    console.log(`[Timer] Run ${runId} finished in ${durationMs}ms`);
+
+  // Runs AFTER the run completes successfully (has durationMs and result)
+  after: async ({ runId, agentName, durationMs }) => {
+    console.log(`[Timer] Run ${runId} (${agentName}) finished in ${durationMs}ms`);
   },
-  onError: async ({ runId, error }) => {
-    console.error(`[Timer] Run ${runId} encountered error: ${error.message}`);
+
+  // Runs if the run throws an error (has durationMs and error)
+  onError: async ({ runId, agentName, error }) => {
+    console.error(`[Timer] Run ${runId} (${agentName}) failed: ${error.message}`);
   }
 });
 
-// Register middleware with Runner
+// Register middleware with the Runner
 const runner = new Runner({
   middleware: [timingMiddleware]
 });
@@ -34,19 +50,49 @@ const runner = new Runner({
 
 ## Execution Order
 
-- **`before` Hooks**: Executed in **declaration order** (forward) BEFORE input guardrails or LLM calls.
-- **`after` Hooks**: Executed in **reverse declaration order** (onion model) AFTER the run completes successfully.
-- **`onError` Hooks**: Executed in **reverse declaration order** if an error occurs. Failures inside `onError` hooks are safely isolated so they never mask the primary run error.
+- **`before` hooks**: Run in **declaration order** (first to last), BEFORE any LLM call or guardrail check.
+- **`after` hooks**: Run in **reverse order** (last to first), AFTER the run completes successfully.
+- **`onError` hooks**: Run in **reverse order** if an error occurs. Failures inside `onError` are safely isolated — they never hide the original error.
 
 ---
 
-## Context Parameters
+## Context Properties Available Per Hook
 
-| Hook      | Parameter Context                            |
-| --------- | -------------------------------------------- |
-| `before`  | `{ runId, agent, mode, signal }`             |
-| `after`   | `{ runId, agent, mode, result, durationMs }` |
-| `onError` | `{ runId, agent, mode, error, durationMs }`  |
+| Hook      | Available Properties                                             |
+| --------- | ---------------------------------------------------------------- |
+| `before`  | `runId`, `agentName`, `mode`, `sessionId?`, `signal`, `metadata` |
+| `after`   | All `before` properties + `result`, `durationMs`                 |
+| `onError` | All `before` properties + `error`, `durationMs`                  |
+
+> **Important**: The context provides `agentName` (a string), **not** an `agent` object. If you need agent-level details inside middleware, use the `agentName` string to look it up in your own registry.
+
+---
+
+## Attaching Middleware to a Single Agent via Plugins
+
+Middleware registered on `Runner` applies to **all agents** that run through it. To attach middleware only to a specific agent, use a [Plugin](./plugins) instead:
+
+```typescript
+import { plugin, middleware, Agent, OpenAIProvider } from "ezagent";
+
+const auditPlugin = plugin({
+  name: "audit",
+  middleware: [
+    middleware({
+      name: "audit_hook",
+      before: ({ runId, agentName }) => console.log(`[Audit] ${agentName} starting run ${runId}`)
+    })
+  ]
+});
+
+const agent = new Agent({
+  name: "SecureAgent",
+  instructions: "Handle sensitive requests.",
+  model: "gpt-4.1-mini",
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  plugins: [auditPlugin] // Only this agent gets the audit middleware
+});
+```
 
 ---
 

@@ -1,24 +1,32 @@
 # Agent Plugins
 
-Plugins provide a clean way to package reusable middleware hooks and attach them directly to an `Agent`.
+## What is a Plugin?
+
+A Plugin is a **reusable bundle of middleware hooks** that you attach to a specific `Agent`. While Runner-level middleware applies to every run through that Runner, plugins are scoped to the agent they're attached to.
+
+**Common use cases:**
+
+- Adding audit logging to only your "FinanceAgent" and not other agents
+- Bundling observability (timing + error tracking) as a single installable unit
+- Sharing a pre-built plugin across projects as an npm package
 
 ---
 
 ## Defining a Plugin
 
-Use the `plugin()` factory function:
+Use the `plugin()` factory function. Inside it, you use `middleware()` to define the hooks:
 
 ```typescript
 import { middleware, plugin } from "ezagent";
 
-// Create an audit logging plugin
+// Create a reusable audit logging plugin
 export const auditLoggingPlugin = plugin({
   name: "audit_logger",
   middleware: [
     middleware({
       name: "run_audit",
-      before: ({ runId, agent }) => {
-        console.log(`[AUDIT] Starting run ${runId} for agent ${agent.name}`);
+      before: ({ runId, agentName }) => {
+        console.log(`[AUDIT] Starting run ${runId} for agent "${agentName}"`);
       },
       after: ({ runId, durationMs }) => {
         console.log(`[AUDIT] Completed run ${runId} in ${durationMs}ms`);
@@ -33,12 +41,12 @@ export const auditLoggingPlugin = plugin({
 
 ---
 
-## Attaching Plugins to an Agent (`.use()`)
+## Attaching Plugins to an Agent
 
-Attach plugins using the immutable `.use()` method on `Agent`:
+**Option 1: Pass `plugins` in the constructor (recommended)**
 
 ```typescript
-import "dotenv/config"; // 1. Load .env variables at line 1
+import "dotenv/config";
 import { Agent, OpenAIProvider } from "ezagent";
 import { auditLoggingPlugin } from "./plugins.js";
 
@@ -46,11 +54,27 @@ const agent = new Agent({
   name: "PluginAgent",
   instructions: "Process incoming requests.",
   model: "gpt-4.1-mini",
-  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! })
-}).use(auditLoggingPlugin);
-
-// agent now carries auditLoggingPlugin's middleware automatically!
+  provider: new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! }),
+  plugins: [auditLoggingPlugin] // Attach directly in the constructor
+});
 ```
+
+**Option 2: Use `.use()` to extend an existing agent immutably**
+
+```typescript
+// .use() returns a NEW Agent with the plugin attached — original is unchanged
+const agentWithPlugin = agent.use(auditLoggingPlugin);
+```
+
+---
+
+## Plugin vs Runner Middleware — When to Use Which?
+
+|              | Plugin                      | Runner Middleware                  |
+| ------------ | --------------------------- | ---------------------------------- |
+| **Scope**    | One specific agent          | All agents run through that Runner |
+| **Use when** | Audit only "FinanceAgent"   | Log timing for every agent run     |
+| **Portable** | Yes — share across projects | Stays within one Runner instance   |
 
 ---
 

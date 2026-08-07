@@ -9,7 +9,7 @@ Complete exported classes, factory functions, types, and error codes in `ezagent
 ### `Agent`
 
 ```typescript
-class Agent<TOutput = unknown> {
+class Agent<TOutput = string> {
   constructor(config: AgentConfig<TOutput>);
   readonly name: string;
   readonly instructions: string;
@@ -18,10 +18,25 @@ class Agent<TOutput = unknown> {
   readonly tools: readonly Tool[];
   readonly guardrails: AgentGuardrails;
   readonly handoffs: readonly Handoff[];
+  readonly plugins: readonly AgentPlugin[];
+  readonly middleware: readonly RunnerMiddleware[];
+  readonly memory?: Readonly<AgentMemoryConfig>;
+  readonly output?: StructuredOutputDefinition<TOutput>;
 
-  withTools(tools: readonly Tool[]): Agent<TOutput>;
+  /** Finds a configured tool by its name. */
+  getTool(name: string): Tool | undefined;
+
+  /** Finds a configured handoff by its tool name. */
+  getHandoff(toolName: string): Handoff | undefined;
+
+  /** Returns a new Agent with the given handoffs. Original is unchanged. */
   withHandoffs(handoffs: readonly Handoff[]): Agent<TOutput>;
+
+  /** Returns a new Agent with an additional plugin. Original is unchanged. */
   use(plugin: AgentPlugin): Agent<TOutput>;
+
+  // Note: There is NO .withTools() method.
+  // To change tools, create a new Agent with new Agent({ ...existingConfig, tools: [...] })
 }
 ```
 

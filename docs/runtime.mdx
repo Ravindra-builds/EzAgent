@@ -21,8 +21,8 @@ Each call to `runner.run(agent, options)` runs through a bounded execution loop:
    │
 6. Execute LLM Provider Chat/Stream Turn
    ├── If Model requests Tool Call → Run Tool & loop back to Step 6
-   ├── If Model requests Handoff → Switch Agent & loop back to Step 6
-   └── If Model returns Response → Proceed to Step 7
+   ├── If Model requests Handoff  → Switch Agent & loop back to Step 6
+   └── If Model returns Response  → Proceed to Step 7
    │
 7. Validate Structured Output (repair & retry if schema validation fails)
    │
@@ -40,12 +40,13 @@ Each call to `runner.run(agent, options)` runs through a bounded execution loop:
 To prevent runaway infinite loops, unconstrained tool executions, or unexpected API costs, `Runner` enforces configurable execution boundaries:
 
 ```typescript
+import "dotenv/config";
 import { Runner } from "ezagent";
 
 const runner = new Runner({
   maxIterations: 10, // Max LLM turn iterations per run (default: 10)
   maxToolCalls: 25, // Max total tool calls per run (default: 25)
-  maxHandoffs: 5, // Max agent delegations (default: 5)
+  maxHandoffs: 5, // Max agent delegations per run (default: 5)
   maxOutputRetries: 3, // Max structured output repair retries (default: 3)
   timeoutMs: 120_000, // Total run deadline in milliseconds (default: 120,000)
   retry: {
@@ -58,37 +59,53 @@ const runner = new Runner({
 
 ---
 
-## Cancellation & Deadlines
+## Cancellation & Deadlines (`AbortController`)
 
-Pass an `AbortSignal` to cancel a running execution gracefully:
+`AbortController` is a **built-in JavaScript/Node.js feature** — no import is needed. It lets you cancel async operations (like HTTP requests or agent runs) at any time.
 
 ```typescript
+import "dotenv/config";
+import { Agent, OpenAIProvider, Runner } from "ezagent";
+
+const provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY! });
+const agent = new Agent({
+  name: "Assistant",
+  instructions: "You are a helpful assistant.",
+  model: "gpt-4.1-mini",
+  provider
+});
+const runner = new Runner();
+
+// AbortController is built into Node.js 15+ and all modern browsers
 const controller = new AbortController();
 
-// Cancel run after 5 seconds if not completed
-setTimeout(() => controller.abort(new Error("Operation cancelled by user")), 5000);
+// Automatically cancel the run after 5 seconds
+setTimeout(() => controller.abort(), 5000);
 
 try {
   const result = await runner.run(agent, {
     input: "Analyze this large dataset...",
-    signal: controller.signal
+    signal: controller.signal // Pass the signal to runner.run()
   });
+  console.log(result.output);
 } catch (error) {
-  if (error instanceof Error && error.message.includes("cancelled")) {
-    console.log("Run was safely aborted.");
-  }
+  // The run was cancelled before it completed
+  console.log("Run was cancelled or timed out.");
 }
 ```
+
+> **How it works**: When `controller.abort()` is called, the `signal` becomes "aborted". `Runner` checks this signal between each step and stops execution cleanly, preventing any further API calls.
 
 ---
 
 ## Event Bus Subscriptions
 
-`Runner` emits typed runtime events that allow you to monitor progress in real time:
+`Runner` emits typed runtime events that let you monitor progress in real time:
 
 ```typescript
-runner.on("run:start", ({ runId, agentName }) => {
-  console.log(`[${runId}] Started run for ${agentName}`);
+// Unsubscribe by calling the returned function
+const unsubscribe = runner.on("run:start", ({ runId, agentName }) => {
+  console.log(`[${runId}] Started run for agent "${agentName}"`);
 });
 
 runner.on("model:start", ({ model, iteration }) => {

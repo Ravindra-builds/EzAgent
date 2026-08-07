@@ -47,16 +47,17 @@ const baseAgent = new Agent({
 
 Here is the complete reference of options you can pass to `new Agent({...})`:
 
-| Option         | Type                 | Required | Description                                                                |
-| -------------- | -------------------- | -------- | -------------------------------------------------------------------------- |
-| `name`         | `string`             | **Yes**  | Human-readable name used in logs, traces, and multi-agent handoffs.        |
-| `instructions` | `string`             | **Yes**  | System prompt instructions that guide model behavior.                      |
-| `provider`     | `Provider`           | **Yes**  | The LLM provider instance (`OpenAIProvider`, `GeminiProvider`, or custom). |
-| `model`        | `string`             | **Yes**  | Model identifier (e.g., `gpt-4.1-mini`, `gemini-2.0-flash`).               |
-| `tools`        | `readonly Tool[]`    | No       | List of Zod-validated tools the agent is permitted to execute.             |
-| `guardrails`   | `AgentGuardrails`    | No       | Safety rules for inputs, outputs, tool execution, and human approvals.     |
-| `handoffs`     | `readonly Handoff[]` | No       | List of target agents this agent can delegate tasks to.                    |
-| `output`       | `ZodSchema`          | No       | Zod schema enforcing typed JSON responses with automatic repair.           |
+| Option         | Type                     | Required | Description                                                                |
+| -------------- | ------------------------ | -------- | -------------------------------------------------------------------------- |
+| `name`         | `string`                 | **Yes**  | Human-readable name used in logs, traces, and multi-agent handoffs.        |
+| `instructions` | `string`                 | **Yes**  | System prompt instructions that guide model behavior.                      |
+| `provider`     | `Provider`               | **Yes**  | The LLM provider instance (`OpenAIProvider`, `GeminiProvider`, or custom). |
+| `model`        | `string`                 | **Yes**  | Model identifier (e.g., `gpt-4.1-mini`, `gemini-2.0-flash`).               |
+| `tools`        | `readonly Tool[]`        | No       | List of Zod-validated tools the agent is permitted to execute.             |
+| `guardrails`   | `AgentGuardrails`        | No       | Safety rules for inputs, outputs, tool execution, and human approvals.     |
+| `handoffs`     | `readonly Handoff[]`     | No       | List of target agents this agent can delegate tasks to.                    |
+| `plugins`      | `readonly AgentPlugin[]` | No       | Reusable middleware bundles attached to this agent.                        |
+| `output`       | `ZodSchema`              | No       | Zod schema enforcing typed JSON responses with automatic repair.           |
 
 ---
 
@@ -64,22 +65,27 @@ Here is the complete reference of options you can pass to `new Agent({...})`:
 
 ### What is Immutability?
 
-Once an `Agent` instance is created in EzAgent, its configuration is **frozen** and cannot be mutated or overwritten by accident later in your code.
+Once an `Agent` instance is created, its configuration is **frozen** — nothing can accidentally overwrite its tools, instructions, or provider later in your code.
 
 ### Why is this beneficial?
 
-- **No Side Effects**: You can safely pass a base agent into different functions or reuse it across thousands of web requests without worrying that one request might accidentally modify the agent's tools or instructions for other users.
-- **Predictable Behavior**: The agent configuration you inspect in your editor is guaranteed to be the exact configuration executed by the `Runner`.
+- **No Side Effects**: Safely reuse the same agent across thousands of web requests without one request polluting another's configuration.
+- **Predictable Behavior**: The exact configuration you define is exactly what runs.
 
-### How do you add tools or plugins to an existing agent?
+### Available Immutability Helpers
 
-Instead of mutating the original agent, EzAgent helper methods (`withTools`, `withHandoffs`, `use`) return a **brand new Agent instance** containing the added features, while keeping the original base agent completely intact.
+| Method                      | What it does                                               |
+| --------------------------- | ---------------------------------------------------------- |
+| `agent.withHandoffs([...])` | Returns a **new Agent** with the given handoff targets     |
+| `agent.use(plugin)`         | Returns a **new Agent** with an additional plugin attached |
+
+> **Note**: There is no `.withTools()` method. To create an agent with different tools, simply create a new `Agent` passing the `tools` array in the constructor.
 
 ---
 
-## 5. Complete Step-by-Step Immutability Example
+## 5. Complete Step-by-Step Example
 
-Here is a complete, copy-pasteable example demonstrating how to extend an Agent using `.withTools()`, `.withHandoffs()`, and `.use()`:
+Here is a complete, copy-pasteable example showing how to build agents, add tools, configure handoffs, and attach plugins:
 
 ```typescript
 import "dotenv/config";
@@ -91,31 +97,19 @@ const provider = new OpenAIProvider({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
-// 2. Define a base Agent
-const baseAgent = new Agent({
-  name: "BaseAssistant",
-  instructions: "You are a helpful assistant.",
-  model: "gpt-4.1-mini",
-  provider
-});
-
-// 3. Define a Tool using the tool() helper
+// 2. Define a Tool using the tool() helper
 const calculatorTool = tool({
   name: "calculator",
   description: "Performs basic math calculations.",
   schema: z.object({
-    expression: z.string().describe("e.g. 5 + 10")
+    expression: z.string().describe("Math expression like: 25 * 4")
   }),
   execute: async ({ expression }) => {
-    // Basic calculation logic
     return { result: eval(expression) };
   }
 });
 
-// 4. Extend the base agent with tools (returns a NEW Agent instance!)
-const agentWithTools = baseAgent.withTools([calculatorTool]);
-
-// 5. Define a Specialist Agent for Handoffs
+// 3. Define a Specialist Agent for Handoffs
 const billingAgent = new Agent({
   name: "BillingSpecialist",
   instructions: "You handle billing and refund questions.",
@@ -123,32 +117,41 @@ const billingAgent = new Agent({
   provider
 });
 
-// 6. Extend the agent with handoffs (returns a NEW Agent instance!)
-const agentWithHandoffs = agentWithTools.withHandoffs([
-  handoff(billingAgent, { description: "Delegate billing and payment queries." })
-]);
-
-// 7. Define a reusable Plugin
+// 4. Define a reusable Plugin using plugin() and middleware()
 const loggingPlugin = plugin({
   name: "logger",
   middleware: [
     middleware({
       name: "run_logger",
-      before: ({ runId, agent }) => console.log(`[Start] Run ${runId} with ${agent.name}`)
+      before: ({ runId, agentName }) =>
+        console.log(`[Start] Run ${runId} with agent "${agentName}"`)
     })
   ]
 });
 
-// 8. Attach the plugin (returns a NEW Agent instance!)
-const finalAgent = agentWithHandoffs.use(loggingPlugin);
+// 5. Create Agent with tools, handoffs, and plugin all in constructor
+const mainAgent = new Agent({
+  name: "MainAssistant",
+  instructions:
+    "You are a helpful assistant. Use the calculator when needed, delegate billing to BillingSpecialist.",
+  model: "gpt-4.1-mini",
+  provider,
+  tools: [calculatorTool],
+  handoffs: [handoff(billingAgent, { description: "Delegate billing and payment queries." })],
+  plugins: [loggingPlugin]
+});
 
-// The original baseAgent is still untouched and unmodified!
-console.log("Base Agent tools count:", baseAgent.tools.length); // 0
-console.log("Final Agent tools count:", finalAgent.tools.length); // 1
+// 6. Or use .withHandoffs() to extend an existing agent immutably
+const routerAgent = new Agent({
+  name: "Router",
+  instructions: "You are a helpful assistant.",
+  model: "gpt-4.1-mini",
+  provider
+}).withHandoffs([handoff(billingAgent, { description: "Delegate billing queries." })]);
 
-// 9. Run the Final Agent
+// 7. Run the Agent
 const runner = new Runner();
-const result = await runner.run(finalAgent, {
+const result = await runner.run(mainAgent, {
   input: "What is 25 * 4?"
 });
 
